@@ -66,3 +66,30 @@ def check_object_exists(object_key: str) -> bool:
     except Exception as e:
         logger.warning(f"Object '{object_key}' check failed in bucket '{settings.MINIO_BUCKET}': {e}")
         return False
+
+
+def download_object(bucket_name: str, object_key: str) -> bytes:
+    """
+    Download an object from the specified MinIO bucket.
+
+    Args:
+        bucket_name: Name of the bucket.
+        object_key: Key of the object.
+
+    Returns:
+        bytes: Object content.
+
+    Raises:
+        Exception: If download fails.
+    """
+    try:
+        client = get_minio_client()
+        response = client.get_object(bucket_name, object_key)
+        try:
+            return response.read()
+        finally:
+            response.close()
+            response.release_conn()
+    except Exception as e:
+        logger.error(f"Failed to download object '{object_key}' from bucket '{bucket_name}': {e}")
+        raise

@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     APP_NAME: str = "Leadgen Bot API"
     APP_VERSION: str = "0.1.1"
 
+    # OpenAI
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+
     # PostgreSQL
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "leadgen-postgres")
     POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))
