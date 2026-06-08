@@ -6,6 +6,7 @@ from typing import Dict
 
 from fastapi import APIRouter
 
+from src.config import settings
 from src.services.database import check_postgres
 from src.services.minio_service import check_minio
 
@@ -46,4 +47,6 @@ async def health_check() -> Dict[str, str]:
         "status": status,
         "postgres": "ok" if postgres_ok else "error",
         "minio": "ok" if minio_ok else "error",
+        "version": settings.APP_VERSION,
+        "commit_sha": settings.COMMIT_SHA,
     }

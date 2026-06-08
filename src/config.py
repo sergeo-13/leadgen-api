@@ -1,9 +1,32 @@
 """Application configuration management."""
 
 import os
+import subprocess
 from typing import Optional
 
 from pydantic_settings import BaseSettings
+
+
+def get_git_commit_sha() -> str:
+    """Get the current git commit SHA."""
+    # Check environment variable
+    sha = os.getenv("COMMIT_SHA")
+    if sha:
+        return sha
+
+    # Check git command
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL
+        ).decode("ascii").strip()
+    except Exception:
+        # Check local file
+        try:
+            with open("commit_sha.txt", "r") as f:
+                return f.read().strip()
+        except Exception:
+            return "unknown"
 
 
 class Settings(BaseSettings):
@@ -13,6 +36,7 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     APP_NAME: str = "Leadgen Bot API"
     APP_VERSION: str = "0.1.0"
+    COMMIT_SHA: str = get_git_commit_sha()
 
     # PostgreSQL
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "leadgen-postgres")

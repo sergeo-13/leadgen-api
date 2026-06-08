@@ -32,5 +32,6 @@ async def root():
     return {
         "message": "Welcome to Leadgen Bot API",
         "version": settings.APP_VERSION,
+        "commit_sha": settings.COMMIT_SHA,
         "docs": "/docs",
     }
