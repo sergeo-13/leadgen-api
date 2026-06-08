@@ -18,8 +18,8 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: leadgen-docs
       MINIO_SECURE: "false"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-      EMBEDDING_MODEL: "${EMBEDDING_MODEL:-text-embedding-3-small}"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
     networks:
       - leadgen_net
 

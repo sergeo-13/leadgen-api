@@ -7,7 +7,7 @@ import asyncpg
 
 from src.config import settings
 from src.core.exceptions import DatabaseConnectionError
-from src.models.schemas import DocumentMetadata
+from src.models.schemas import DocumentMetadata, DocumentSearchFilters
 
 logger = logging.getLogger(__name__)
 
@@ -239,5 +239,101 @@ async def insert_document_chunks(document_id: str, chunks: List[Tuple[int, str, 
                     content,
                     vector_str
                 )
+    finally:
+        await conn.close()
+
+
+async def search_document_chunks(
+    query_embedding: List[float],
+    limit: int,
+    filters: Optional[DocumentSearchFilters] = None
+) -> List[dict]:
+    """
+    Search document chunks by vector similarity using pgvector cosine distance,
+    optionally filtering by document metadata.
+
+    Args:
+        query_embedding: OpenAI embedding float list.
+        limit: Max number of chunks to return.
+        filters: DocumentSearchFilters object.
+
+    Returns:
+        List[dict]: Matched document chunks with similarity score and doc metadata.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+
+    vector_str = f"[{','.join(map(str, query_embedding))}]"
+
+    query = """
+        SELECT
+            d.id AS document_id,
+            d.title,
+            d.type,
+            d.client_name,
+            d.industry,
+            d.geography,
+            d.use_case,
+            d.source_bucket,
+            d.source_object_key,
+            c.id AS chunk_id,
+            c.chunk_index,
+            c.content,
+            1 - (c.embedding <=> $1::vector) AS score
+        FROM document_chunks c
+        JOIN documents d ON d.id = c.document_id
+    """
+
+    params = [vector_str]
+    where_clauses = ["c.embedding IS NOT NULL"]
+    param_idx = 2
+
+    if filters:
+        if filters.type is not None:
+            where_clauses.append(f"d.type = ${param_idx}")
+            params.append(filters.type)
+            param_idx += 1
+        if filters.client_name is not None:
+            where_clauses.append(f"d.client_name = ${param_idx}")
+            params.append(filters.client_name)
+            param_idx += 1
+        if filters.industry is not None:
+            where_clauses.append(f"d.industry = ${param_idx}")
+            params.append(filters.industry)
+            param_idx += 1
+        if filters.geography is not None:
+            where_clauses.append(f"d.geography = ${param_idx}")
+            params.append(filters.geography)
+            param_idx += 1
+        if filters.use_case is not None:
+            where_clauses.append(f"d.use_case = ${param_idx}")
+            params.append(filters.use_case)
+            param_idx += 1
+        if filters.capabilities:
+            where_clauses.append(f"d.capabilities && ${param_idx}::text[]")
+            params.append(filters.capabilities)
+            param_idx += 1
+
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    query += f" ORDER BY c.embedding <=> $1::vector ASC LIMIT ${param_idx}"
+    params.append(limit)
+
+    try:
+        rows = await conn.fetch(query, *params)
+        results = []
+        for row in rows:
+            res = dict(row)
+            res["document_id"] = str(res["document_id"])
+            res["chunk_id"] = str(res["chunk_id"])
+            results.append(res)
+        return results
     finally:
         await conn.close()

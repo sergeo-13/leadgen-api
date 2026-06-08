@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class HealthResponse(BaseModel):
@@ -73,3 +73,55 @@ class DocumentIngestResponse(BaseModel):
     document_id: str = Field(..., description="UUID of the ingested document")
     job_id: str = Field(..., description="UUID of the ingestion job")
     status: str = Field(..., description="Job status")
+
+
+class DocumentSearchFilters(BaseModel):
+    """Filters for document search."""
+
+    type: Optional[str] = None
+    client_name: Optional[str] = None
+    industry: Optional[str] = None
+    geography: Optional[str] = None
+    use_case: Optional[str] = None
+    capabilities: list[str] = Field(default_factory=list)
+
+
+class DocumentSearchRequest(BaseModel):
+    """Request schema for document search."""
+
+    query: str = Field(..., min_length=1, description="Search query")
+    limit: int = Field(default=5, ge=1, le=100, description="Limit results")
+    filters: Optional[DocumentSearchFilters] = None
+
+    @field_validator("query", mode="before")
+    @classmethod
+    def trim_query(cls, v):
+        """Trim leading/trailing whitespace from the query."""
+        if isinstance(v, str):
+            v = v.strip()
+        return v
+
+
+class DocumentSearchResult(BaseModel):
+    """A single document search result chunk."""
+
+    document_id: str
+    title: str
+    type: Optional[str] = None
+    client_name: Optional[str] = None
+    industry: Optional[str] = None
+    geography: Optional[str] = None
+    use_case: Optional[str] = None
+    source_bucket: str
+    source_object_key: str
+    chunk_id: str
+    chunk_index: int
+    content: str
+    score: float
+
+
+class DocumentSearchResponse(BaseModel):
+    """Response schema for document search."""
+
+    query: str
+    results: list[DocumentSearchResult]

@@ -19,7 +19,7 @@ leadgen-bot/
 │   │   └── v1/
 │   │       ├── __init__.py
 │   │       ├── health.py       # Health check endpoints
-│   │       ├── documents.py    # Document management endpoints
+│   │       ├── documents.py    # Document management & search endpoints
 │   │       └── ingestion.py    # Ingestion processing endpoints
 │   ├── services/
 │   │   ├── __init__.py
@@ -39,7 +39,7 @@ leadgen-bot/
 │   ├── __init__.py
 │   ├── conftest.py             # Pytest configuration
 │   ├── test_health.py          # Health endpoint tests
-│   ├── test_documents.py       # Ingest endpoint tests
+│   ├── test_documents.py       # Ingest & search endpoint tests
 │   └── test_ingestion.py       # Ingestion process endpoint tests
 ├── Dockerfile
 ├── docker-compose.yml
@@ -135,6 +135,26 @@ To manually ingest and process a document in the current MVP version:
 4. **Verify Chunks**:
    Check the `document_chunks` table in PostgreSQL to verify that the chunks and embeddings were successfully created for your `document_id`.
 
+5. **Semantic Document Search**:
+   Call the search endpoint to search for document chunks semantically across the knowledge base:
+   ```bash
+   curl -X POST http://localhost:8000/api/v1/documents/search \
+     -H "Content-Type: application/json" \
+     -d '{
+       "query": "What is the role of OpenClaw in the leadgen architecture?",
+       "limit": 5,
+       "filters": {
+         "type": "case",
+         "client_name": "Acme Corp",
+         "industry": null,
+         "geography": null,
+         "use_case": null,
+         "capabilities": []
+       }
+     }'
+   ```
+   This will return matched chunks ordered by vector similarity score (cosine distance).
+
 ## API Endpoints
 
 ### Health Check
@@ -149,9 +169,10 @@ To manually ingest and process a document in the current MVP version:
 }
 ```
 
-### Document Ingestion
+### Document Ingestion & Search
 - **POST** `/api/v1/documents/ingest` - Registers metadata and schedules a pending job.
 - **POST** `/api/v1/ingestion/process-next` - Claims and runs the next pending job.
+- **POST** `/api/v1/documents/search` - Searches chunks semantically using pgvector.
 
 ## Configuration
 

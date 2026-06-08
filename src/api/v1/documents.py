@@ -2,8 +2,15 @@
 
 from fastapi import APIRouter, HTTPException, status
 
-from src.models.schemas import DocumentIngestRequest, DocumentIngestResponse
-from src.services.database import create_ingestion_job
+from src.models.schemas import (
+    DocumentIngestRequest,
+    DocumentIngestResponse,
+    DocumentSearchRequest,
+    DocumentSearchResponse,
+    DocumentSearchResult,
+)
+from src.services.database import create_ingestion_job, search_document_chunks
+from src.services.embedding_service import generate_embeddings
 from src.services.minio_service import check_object_exists
 
 router = APIRouter()
@@ -48,4 +55,52 @@ async def ingest_document(payload: DocumentIngestRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create ingestion job: {e}"
+        )
+
+
+@router.post(
+    "/documents/search",
+    response_model=DocumentSearchResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Search document chunks semantically"
+)
+async def search_documents(payload: DocumentSearchRequest):
+    """
+    Search document chunks semantically using OpenAI query embeddings and pgvector.
+    """
+    # 1. Validate query is not empty (min_length=1 checks this, but we explicitly validate)
+    if not payload.query or not payload.query.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Search query cannot be empty or whitespace-only."
+        )
+
+    try:
+        # 2 & 3. Generate query embedding using OpenAI
+        embeddings = generate_embeddings([payload.query])
+        if not embeddings:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to generate embedding for search query."
+            )
+        query_embedding = embeddings[0]
+
+        # 4. Search document chunks
+        results_data = await search_document_chunks(
+            query_embedding=query_embedding,
+            limit=payload.limit,
+            filters=payload.filters
+        )
+
+        # 5. Format results
+        results = [DocumentSearchResult(**item) for item in results_data]
+
+        return DocumentSearchResponse(
+            query=payload.query,
+            results=results
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Semantic search failed: {str(e)}"
         )
