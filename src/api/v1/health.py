@@ -48,5 +48,4 @@ async def health_check() -> Dict[str, str]:
         "postgres": "ok" if postgres_ok else "error",
         "minio": "ok" if minio_ok else "error",
         "version": settings.APP_VERSION,
-        "commit_sha": settings.COMMIT_SHA,
     }

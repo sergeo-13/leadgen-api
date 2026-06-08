@@ -12,12 +12,10 @@ def test_health_endpoint(client):
         assert "postgres" in data
         assert "minio" in data
         assert "version" in data
-        assert "commit_sha" in data
         assert data["status"] in ["ok", "degraded"]
         assert isinstance(data["postgres"], str)
         assert isinstance(data["minio"], str)
         assert isinstance(data["version"], str)
-        assert isinstance(data["commit_sha"], str)
         assert data["postgres"] in ["ok", "error"]
         assert data["minio"] in ["ok", "error"]
 
@@ -30,5 +28,4 @@ def test_root_endpoint(client):
     data = response.json()
     assert "message" in data
     assert "version" in data
-    assert "commit_sha" in data
     assert "docs" in data
