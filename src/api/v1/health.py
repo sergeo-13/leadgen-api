@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/health")
-async def health_check() -> Dict[str, bool | str]:
+async def health_check() -> Dict[str, str]:
     """
     Health check endpoint.
 
@@ -44,6 +44,6 @@ async def health_check() -> Dict[str, bool | str]:
 
     return {
         "status": status,
-        "postgres": postgres_ok,
-        "minio": minio_ok,
+        "postgres": "ok" if postgres_ok else "error",
+        "minio": "ok" if minio_ok else "error",
     }

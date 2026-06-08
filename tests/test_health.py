@@ -3,16 +3,19 @@
 
 def test_health_endpoint(client):
     """Test health check endpoint returns valid response."""
-    response = client.get("/api/v1/health")
-    assert response.status_code == 200
+    for path in ["/health", "/api/v1/health"]:
+        response = client.get(path)
+        assert response.status_code == 200
 
-    data = response.json()
-    assert "status" in data
-    assert "postgres" in data
-    assert "minio" in data
-    assert data["status"] in ["ok", "degraded"]
-    assert isinstance(data["postgres"], bool)
-    assert isinstance(data["minio"], bool)
+        data = response.json()
+        assert "status" in data
+        assert "postgres" in data
+        assert "minio" in data
+        assert data["status"] in ["ok", "degraded"]
+        assert isinstance(data["postgres"], str)
+        assert isinstance(data["minio"], str)
+        assert data["postgres"] in ["ok", "error"]
+        assert data["minio"] in ["ok", "error"]
 
 
 def test_root_endpoint(client):

@@ -20,14 +20,7 @@ services:
       MINIO_SECURE: "false"
     networks:
       - leadgen_net
-    depends_on:
-      - healthcheck
-
-  healthcheck:
-    image: busybox
-    networks:
-      - leadgen_net
 
 networks:
   leadgen_net:
-    external: false
+    external: true
