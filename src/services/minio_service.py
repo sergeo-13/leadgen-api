@@ -47,3 +47,22 @@ def check_minio() -> bool:
     except Exception as e:
         logger.error(f"MinIO connection error: {e}")
         raise MinIOConnectionError(f"Failed to connect to MinIO: {e}")
+
+
+def check_object_exists(object_key: str) -> bool:
+    """
+    Check if object exists in the configured MinIO bucket.
+
+    Args:
+        object_key: MinIO object key.
+
+    Returns:
+        True if the object exists, False otherwise.
+    """
+    try:
+        client = get_minio_client()
+        client.stat_object(settings.MINIO_BUCKET, object_key)
+        return True
+    except Exception as e:
+        logger.warning(f"Object '{object_key}' check failed in bucket '{settings.MINIO_BUCKET}': {e}")
+        return False

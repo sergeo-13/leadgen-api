@@ -45,3 +45,31 @@ class Lead(LeadBase):
 
     class Config:
         from_attributes = True
+
+
+class DocumentMetadata(BaseModel):
+    """Metadata for document ingestion."""
+
+    type: str = Field(..., description="Document type")
+    client_name: str = Field(default="", description="Client name")
+    industry: str = Field(default="", description="Industry")
+    geography: str = Field(default="", description="Geography")
+    use_case: str = Field(default="", description="Use case")
+    capabilities: list[str] = Field(default_factory=list, description="List of capabilities")
+    authors: list[str] = Field(default_factory=list, description="List of authors")
+
+
+class DocumentIngestRequest(BaseModel):
+    """Request schema for document ingestion."""
+
+    object_key: str = Field(..., description="MinIO object key")
+    title: str = Field(..., description="Document title")
+    metadata: DocumentMetadata = Field(..., description="Document metadata")
+
+
+class DocumentIngestResponse(BaseModel):
+    """Response schema for document ingestion."""
+
+    document_id: str = Field(..., description="UUID of the ingested document")
+    job_id: str = Field(..., description="UUID of the ingestion job")
+    status: str = Field(..., description="Job status")
