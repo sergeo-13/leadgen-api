@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  leadgen-kb-api:
+  leadgen-api:
     build: .
-    container_name: leadgen-kb-api
+    container_name: leadgen-api
     restart: unless-stopped
     ports:
       - "8000:8000"

@@ -56,7 +56,7 @@ Fast MVP validation.
 ## ADR-006
 
 Decision:
-Leadgen KB API acts as the only storage access layer.
+Leadgen API acts as the only storage access layer.
 
 Reason:
 Prevents OpenClaw from becoming tightly coupled to storage implementation.

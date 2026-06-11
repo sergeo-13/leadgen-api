@@ -7,7 +7,7 @@ User
   ↓
 OpenClaw Leadgen Agent
   ↓
-Leadgen KB API
+Leadgen API
   ↓
 ┌─────────────────────┬─────────────────────┐
 │       MinIO         │  PostgreSQL+pgvector│
@@ -38,7 +38,7 @@ Must NOT:
 * Parse documents
 * Manage document storage
 
-### Leadgen KB API
+### Leadgen API
 
 Role:
 
@@ -117,7 +117,7 @@ Responsibilities:
 ## Design Principles
 
 1. OpenClaw is the brain.
-2. KB API is the execution layer.
+2. Leadgen API is the execution layer.
 3. MinIO stores originals.
 4. Postgres stores searchable knowledge.
 5. All integrations go through APIs/tools.

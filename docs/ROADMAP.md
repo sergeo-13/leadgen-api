@@ -10,8 +10,8 @@ Status: In Progress
 * [x] Deploy PostgreSQL + pgvector
 * [x] Create database schema
 * [x] Create vector index
-* [ ] Create leadgen-kb-api repository
-* [ ] Deploy leadgen-kb-api
+* [ ] Create leadgen-api repository
+* [ ] Deploy leadgen-api
 * [ ] Implement GET /health
 
 ## Phase 2 — Ingestion MVP
@@ -34,7 +34,7 @@ Status: In Progress
 
 ## Phase 4 — OpenClaw Integration
 
-* [ ] Register KB API tool
+* [ ] Register Leadgen API tool
 * [ ] Create Doc Librarian agent
 * [ ] Connect semantic search
 * [ ] Connect document retrieval

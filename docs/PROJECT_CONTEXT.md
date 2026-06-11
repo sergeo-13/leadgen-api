@@ -1,4 +1,4 @@
-# Leadgen KB API — Project Context
+# Leadgen API — Project Context
 
 ## Goal
 
@@ -25,7 +25,7 @@ Services already deployed:
 - MinIO stores original files: PDF, PPTX, DOCX.
 - Postgres stores metadata, ingestion jobs, document chunks.
 - pgvector stores embeddings for semantic search.
-- OpenClaw calls leadgen-kb-api; it does not directly parse/index documents.
+- OpenClaw calls leadgen-api; it does not directly parse/index documents.
 
 ## Existing Postgres Tables
 
