@@ -1,6 +1,8 @@
 """Internal admin UI served at GET /ui."""
 
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter
+# pyrefly: ignore [missing-import]
 from fastapi.responses import HTMLResponse
 
 router = APIRouter()

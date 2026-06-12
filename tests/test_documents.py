@@ -15,7 +15,7 @@ def test_ingest_document_success(client):
             "industry": "Tech",
             "geography": "US",
             "use_case": "AI",
-            "capabilities": ["Machine Learning"],
+            "tags": ["Machine Learning"],
             "authors": ["John Doe"]
         }
     }
@@ -82,7 +82,7 @@ def test_search_documents_success(client):
             "industry": None,
             "geography": None,
             "use_case": None,
-            "capabilities": ["Parsing"]
+            "tags": ["Parsing"]
         }
     }
 
@@ -95,6 +95,8 @@ def test_search_documents_success(client):
             "industry": "Tech",
             "geography": "Global",
             "use_case": "Integration",
+            "tags": ["Parsing"],
+            "authors": ["Sergii Poznokos"],
             "source_bucket": "leadgen-docs",
             "source_object_key": "leadgen_prd_expanded.pdf",
             "chunk_id": "chunk-uuid-1",
@@ -159,7 +161,7 @@ async def test_search_document_chunks_sql_construction():
     with patch("src.services.database.asyncpg.connect", new_callable=AsyncMock, return_value=mock_conn) as mock_connect:
         filters = DocumentSearchFilters(
             type="case",
-            capabilities=["Machine Learning"]
+            tags=["Machine Learning"]
         )
 
         await search_document_chunks(
@@ -176,7 +178,7 @@ async def test_search_document_chunks_sql_construction():
 
         # Verify SQL structure
         assert "d.type = $2" in called_query
-        assert "d.capabilities && $3::text[]" in called_query
+        assert "d.tags && $3::text[]" in called_query
         assert "LIMIT $4" in called_query
         assert "c.embedding IS NOT NULL" in called_query
         assert "1 - (c.embedding <=> $1::vector) AS score" in called_query

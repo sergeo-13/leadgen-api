@@ -72,7 +72,7 @@ async def create_ingestion_job(
                 """
                 INSERT INTO documents (
                     title, type, client_name, industry, geography,
-                    use_case, capabilities, authors, source_bucket,
+                    use_case, tags, authors, source_bucket,
                     source_object_key, status, confidentiality_level,
                     created_at, updated_at
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
@@ -84,7 +84,7 @@ async def create_ingestion_job(
                 metadata.industry,
                 metadata.geography,
                 metadata.use_case,
-                metadata.capabilities,
+                metadata.tags,
                 metadata.authors,
                 settings.MINIO_BUCKET,
                 object_key,
@@ -348,6 +348,8 @@ async def search_document_chunks(
             d.industry,
             d.geography,
             d.use_case,
+            d.tags,
+            d.authors,
             d.source_bucket,
             d.source_object_key,
             c.id AS chunk_id,
@@ -383,9 +385,9 @@ async def search_document_chunks(
             where_clauses.append(f"d.use_case = ${param_idx}")
             params.append(filters.use_case)
             param_idx += 1
-        if filters.capabilities:
-            where_clauses.append(f"d.capabilities && ${param_idx}::text[]")
-            params.append(filters.capabilities)
+        if filters.tags:
+            where_clauses.append(f"d.tags && ${param_idx}::text[]")
+            params.append(filters.tags)
             param_idx += 1
 
     if where_clauses:
@@ -401,6 +403,7 @@ async def search_document_chunks(
             res = dict(row)
             res["document_id"] = str(res["document_id"])
             res["chunk_id"] = str(res["chunk_id"])
+            res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
             results.append(res)
         return results
     finally:

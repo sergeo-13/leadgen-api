@@ -55,7 +55,7 @@ class DocumentMetadata(BaseModel):
     industry: str = Field(default="", description="Industry")
     geography: str = Field(default="", description="Geography")
     use_case: str = Field(default="", description="Use case")
-    capabilities: list[str] = Field(default_factory=list, description="List of capabilities")
+    tags: list[str] = Field(default_factory=list, description="List of tags")
     authors: list[str] = Field(default_factory=list, description="List of authors")
 
 
@@ -83,7 +83,7 @@ class DocumentSearchFilters(BaseModel):
     industry: Optional[str] = None
     geography: Optional[str] = None
     use_case: Optional[str] = None
-    capabilities: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
 class DocumentSearchRequest(BaseModel):
@@ -112,6 +112,8 @@ class DocumentSearchResult(BaseModel):
     industry: Optional[str] = None
     geography: Optional[str] = None
     use_case: Optional[str] = None
+    tags: list[str]
+    authors: list[str] = Field(default_factory=list)
     source_bucket: str
     source_object_key: str
     chunk_id: str

@@ -113,7 +113,7 @@ async def upload_document(
     industry: str = Form(default=""),
     geography: str = Form(default=""),
     use_case: str = Form(default=""),
-    capabilities: str = Form(default=""),
+    tags: str = Form(default=""),
     authors: str = Form(default=""),
     process_immediately: bool = Form(default=True),
 ):
@@ -177,7 +177,7 @@ async def upload_document(
         )
 
     # 7. Parse optional comma-separated metadata fields
-    capabilities_list = [c.strip() for c in capabilities.split(",") if c.strip()]
+    tags_list = [t.strip() for t in tags.split(",") if t.strip()]
     authors_list = [a.strip() for a in authors.split(",") if a.strip()]
 
     metadata = DocumentMetadata(
@@ -186,7 +186,7 @@ async def upload_document(
         industry=industry,
         geography=geography,
         use_case=use_case,
-        capabilities=capabilities_list,
+        tags=tags_list,
         authors=authors_list,
     )
 

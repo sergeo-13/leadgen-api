@@ -131,7 +131,7 @@ To manually ingest and process a document in the current MVP version:
          "industry": "Technology",
          "geography": "Global",
          "use_case": "Lead Gen Integration",
-         "capabilities": ["Parsing", "Embeddings"],
+         "tags": ["Parsing", "Embeddings"],
          "authors": ["System Architect"]
        }
      }'
@@ -170,11 +170,37 @@ To manually ingest and process a document in the current MVP version:
          "industry": null,
          "geography": null,
          "use_case": null,
-         "capabilities": []
+         "tags": []
        }
      }'
    ```
    This will return matched chunks ordered by vector similarity score (cosine distance).
+
+   Example response:
+   ```json
+   {
+     "query": "What is the role of OpenClaw in the leadgen architecture?",
+     "results": [
+       {
+         "document_id": "d7c1775d-3549-4eb0-bb82-411a5b8a07c2",
+         "title": "Expanded Leadgen Product Requirements Document",
+         "type": "case",
+         "client_name": "Acme Corp",
+         "industry": "Technology",
+         "geography": "Global",
+         "use_case": "Lead Gen Integration",
+         "tags": ["AI", "Machine Learning"],
+         "authors": ["Sergii Poznokos"],
+         "source_bucket": "leadgen-docs",
+         "source_object_key": "leadgen_prd_expanded.pdf",
+         "chunk_id": "8a329d4c-cbe4-432d-862d-986c5512140a",
+         "chunk_index": 0,
+         "content": "OpenClaw orchestrates the ingest workflow by coordinating the parser and embedding logic...",
+         "score": 0.87
+       }
+     ]
+   }
+   ```
 
 ## API Endpoints
 
