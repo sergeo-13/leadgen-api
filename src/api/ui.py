@@ -263,8 +263,8 @@ _UI_HTML = r"""<!DOCTYPE html>
             <input type="text" id="u-usecase" placeholder="Lead Generation" />
           </div>
           <div class="field">
-            <label for="u-cap">Capabilities <small style="text-transform:none">(comma-separated)</small></label>
-            <input type="text" id="u-cap" placeholder="Parsing, Embeddings" />
+            <label for="u-tags">Tags <small style="text-transform:none">(comma-separated)</small></label>
+            <input type="text" id="u-tags" placeholder="AI, Data Engineering, MLOps, RAG, CRM Integration" />
           </div>
           <div class="field full">
             <label for="u-authors">Authors <small style="text-transform:none">(comma-separated)</small></label>
@@ -355,7 +355,7 @@ _UI_HTML = r"""<!DOCTYPE html>
         fd.append('industry',          document.getElementById('u-industry').value.trim());
         fd.append('geography',         document.getElementById('u-geo').value.trim());
         fd.append('use_case',          document.getElementById('u-usecase').value.trim());
-        fd.append('capabilities',      document.getElementById('u-cap').value.trim());
+        fd.append('tags',              document.getElementById('u-tags').value.trim());
         fd.append('authors',           document.getElementById('u-authors').value.trim());
         fd.append('process_immediately', document.getElementById('u-process').checked ? 'true' : 'false');
 
