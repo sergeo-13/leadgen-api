@@ -83,3 +83,25 @@ Implement health checks before ingestion logic.
 
 Reason:
 Infrastructure must be verified before feature development.
+
+---
+
+## ADR-009
+
+Decision:
+Do not use IVFFlat pgvector index for MVP.
+
+Reason:
+The project currently has a small number of document chunks. Creating an IVFFlat index too early, especially with lists=100 on a tiny dataset, caused semantic search to return empty results despite valid embeddings. For MVP, exact vector search is fast enough and more reliable.
+
+Current state:
+document_chunks_embedding_idx was dropped.
+
+SQL:
+```sql
+DROP INDEX IF EXISTS document_chunks_embedding_idx;
+```
+
+Future:
+Reintroduce vector index only when the dataset grows significantly, and tune lists/probes based on actual chunk count.
+
