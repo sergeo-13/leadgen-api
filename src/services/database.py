@@ -1,5 +1,4 @@
-"""Database connection and operations."""
-
+import json
 import logging
 from typing import Optional, Tuple, List
 
@@ -74,8 +73,10 @@ async def create_ingestion_job(
                     title, type, client_name, industry, geography,
                     use_case, tags, authors, source_bucket,
                     source_object_key, status, confidentiality_level,
+                    description, source_type, source_url, file_name,
+                    mime_type, file_size, metadata,
                     created_at, updated_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19::jsonb, NOW(), NOW())
                 RETURNING id
                 """,
                 title,
@@ -88,8 +89,15 @@ async def create_ingestion_job(
                 metadata.authors,
                 settings.MINIO_BUCKET,
                 object_key,
-                "active",
-                "internal"
+                "uploaded",  # Initial status for new documents is uploaded
+                "internal",
+                metadata.description,
+                metadata.source_type,
+                metadata.source_url,
+                metadata.file_name,
+                metadata.mime_type,
+                metadata.file_size,
+                json.dumps(metadata.metadata) if metadata.metadata is not None else '{}'
             )
 
             # Insert ingestion job
@@ -108,6 +116,7 @@ async def create_ingestion_job(
                 None
             )
 
+            logger.info(f"Ingestion job created: job_id={job_id}, document_id={doc_id}")
             return str(doc_id), str(job_id), "pending"
     finally:
         await conn.close()
@@ -229,6 +238,7 @@ async def claim_job(job_id: str) -> None:
             """,
             job_id,
         )
+        logger.info(f"Job {job_id} status changed to processing")
     finally:
         await conn.close()
 
@@ -261,6 +271,7 @@ async def update_job_status(job_id: str, status: str, error: str = None) -> None
             error,
             job_id
         )
+        logger.info(f"Job {job_id} status changed to {status}")
     finally:
         await conn.close()
 
@@ -360,6 +371,13 @@ async def search_document_chunks(
             d.authors,
             d.source_bucket,
             d.source_object_key,
+            d.description,
+            d.source_type,
+            d.source_url,
+            d.file_name,
+            d.mime_type,
+            d.file_size,
+            d.metadata,
             c.id AS chunk_id,
             c.chunk_index,
             c.content,
@@ -369,7 +387,7 @@ async def search_document_chunks(
     """
 
     params = [vector_str]
-    where_clauses = ["c.embedding IS NOT NULL"]
+    where_clauses = ["c.embedding IS NOT NULL", "d.status = 'processed'"]
     param_idx = 2
 
     if filters:
@@ -419,7 +437,428 @@ async def search_document_chunks(
             res["chunk_id"] = str(res["chunk_id"])
             res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
             res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
+            res["metadata"] = dict(res["metadata"]) if res.get("metadata") is not None else {}
             results.append(res)
         return results
+    finally:
+        await conn.close()
+
+
+async def list_documents() -> List[dict]:
+    """
+    List all documents from the database.
+    Includes count of chunks associated with each document.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        rows = await conn.fetch(
+            """
+            SELECT d.id, d.title, d.type, d.client_name, d.industry, d.geography, d.use_case,
+                   d.tags, d.authors, d.source_bucket, d.source_object_key, d.status,
+                   d.confidentiality_level, d.description, d.source_type, d.source_url,
+                   d.file_name, d.mime_type, d.file_size, d.metadata, d.created_at, d.updated_at,
+                   (SELECT COUNT(*) FROM document_chunks WHERE document_id = d.id) AS chunks_count
+            FROM documents d
+            ORDER BY d.created_at DESC
+            """
+        )
+        results = []
+        for row in rows:
+            res = dict(row)
+            res["id"] = str(res["id"])
+            res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
+            res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
+            res["metadata"] = dict(res["metadata"]) if res.get("metadata") is not None else {}
+            results.append(res)
+        return results
+    finally:
+        await conn.close()
+
+
+async def get_document_by_id(document_id: str) -> Optional[dict]:
+    """
+    Get detailed view of a specific document including chunks_count.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        row = await conn.fetchrow(
+            """
+            SELECT d.id, d.title, d.type, d.client_name, d.industry, d.geography, d.use_case,
+                   d.tags, d.authors, d.source_bucket, d.source_object_key, d.status,
+                   d.confidentiality_level, d.description, d.source_type, d.source_url,
+                   d.file_name, d.mime_type, d.file_size, d.metadata, d.created_at, d.updated_at,
+                   (SELECT COUNT(*) FROM document_chunks WHERE document_id = d.id) AS chunks_count
+            FROM documents d
+            WHERE d.id = $1::uuid
+            """,
+            document_id
+        )
+        if not row:
+            return None
+        res = dict(row)
+        res["id"] = str(res["id"])
+        res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
+        res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
+        res["metadata"] = dict(res["metadata"]) if res.get("metadata") is not None else {}
+        return res
+    finally:
+        await conn.close()
+
+
+async def update_document_metadata(document_id: str, title: str, metadata: DocumentMetadata) -> bool:
+    """
+    Update document metadata fields.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        result = await conn.execute(
+            """
+            UPDATE documents
+            SET title = $1, type = $2, client_name = $3, industry = $4, geography = $5,
+                use_case = $6, tags = $7, authors = $8, description = $9, source_type = $10,
+                source_url = $11, metadata = $12::jsonb, updated_at = NOW()
+            WHERE id = $13::uuid
+            """,
+            title,
+            metadata.type,
+            metadata.client_name,
+            metadata.industry,
+            metadata.geography,
+            metadata.use_case,
+            metadata.tags,
+            metadata.authors,
+            metadata.description,
+            metadata.source_type,
+            metadata.source_url,
+            json.dumps(metadata.metadata) if metadata.metadata is not None else '{}',
+            document_id
+        )
+        success = result == "UPDATE 1"
+        if success:
+            logger.info(f"Document {document_id} metadata updated successfully.")
+        return success
+    finally:
+        await conn.close()
+
+
+async def update_document_source(document_id: str, source_object_key: str, file_name: str, mime_type: str, file_size: int) -> bool:
+    """
+    Update document source file reference fields (e.g. during file replacement).
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        result = await conn.execute(
+            """
+            UPDATE documents
+            SET source_object_key = $1, file_name = $2, mime_type = $3, file_size = $4, updated_at = NOW()
+            WHERE id = $5::uuid
+            """,
+            source_object_key,
+            file_name,
+            mime_type,
+            file_size,
+            document_id
+        )
+        success = result == "UPDATE 1"
+        if success:
+            logger.info(f"Document {document_id} source file reference updated successfully.")
+        return success
+    finally:
+        await conn.close()
+
+
+async def list_ingestion_jobs(
+    status: Optional[str] = None,
+    document_id: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+) -> List[dict]:
+    """
+    List ingestion jobs with optional filters and pagination.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    query = """
+        SELECT id, document_id, source_bucket, source_object_key, status, error, created_at, updated_at
+        FROM ingestion_jobs
+    """
+    where_clauses = []
+    params = []
+    param_idx = 1
+
+    if status:
+        where_clauses.append(f"status = ${param_idx}")
+        params.append(status)
+        param_idx += 1
+    if document_id:
+        where_clauses.append(f"document_id = ${param_idx}::uuid")
+        params.append(document_id)
+        param_idx += 1
+
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    query += f" ORDER BY created_at DESC LIMIT ${param_idx} OFFSET ${param_idx + 1}"
+    params.extend([limit, offset])
+
+    try:
+        rows = await conn.fetch(query, *params)
+        results = []
+        for row in rows:
+            res = dict(row)
+            res["job_id"] = str(res["id"])
+            res["document_id"] = str(res["document_id"])
+            results.append(res)
+        return results
+    finally:
+        await conn.close()
+
+
+async def get_jobs_by_document_id(document_id: str) -> List[dict]:
+    """
+    Get all ingestion jobs for a specific document.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        rows = await conn.fetch(
+            """
+            SELECT id, document_id, source_bucket, source_object_key, status, error, created_at, updated_at
+            FROM ingestion_jobs
+            WHERE document_id = $1::uuid
+            ORDER BY created_at DESC
+            """,
+            document_id
+        )
+        results = []
+        for row in rows:
+            res = dict(row)
+            res["job_id"] = str(res["id"])
+            res["document_id"] = str(res["document_id"])
+            results.append(res)
+        return results
+    finally:
+        await conn.close()
+
+
+async def get_job_details_by_id(job_id: str) -> Optional[dict]:
+    """
+    Get specific ingestion job details.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        row = await conn.fetchrow(
+            """
+            SELECT id, document_id, source_bucket, source_object_key, status, error, created_at, updated_at
+            FROM ingestion_jobs
+            WHERE id = $1::uuid
+            """,
+            job_id
+        )
+        if not row:
+            return None
+        res = dict(row)
+        res["job_id"] = str(res["id"])
+        res["document_id"] = str(res["document_id"])
+        return res
+    finally:
+        await conn.close()
+
+
+async def archive_document(document_id: str) -> bool:
+    """
+    Soft-delete a document by setting its status to 'archived'.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        result = await conn.execute(
+            """
+            UPDATE documents
+            SET status = 'archived', updated_at = NOW()
+            WHERE id = $1::uuid
+            """,
+            document_id
+        )
+        success = result == "UPDATE 1"
+        if success:
+            logger.info(f"Document {document_id} status changed to archived")
+        return success
+    finally:
+        await conn.close()
+
+
+async def restore_document(document_id: str) -> bool:
+    """
+    Restore a document from 'archived' status.
+    If it has chunks with embeddings, set to 'processed'; otherwise set to 'uploaded'.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        # Check for chunks with non-null embeddings
+        chunks_count = await conn.fetchval(
+            """
+            SELECT COUNT(*) FROM document_chunks
+            WHERE document_id = $1::uuid AND embedding IS NOT NULL
+            """,
+            document_id
+        )
+        new_status = "processed" if chunks_count > 0 else "uploaded"
+        result = await conn.execute(
+            """
+            UPDATE documents
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2::uuid
+            """,
+            new_status,
+            document_id
+        )
+        success = result == "UPDATE 1"
+        if success:
+            logger.info(f"Document {document_id} status changed to {new_status}")
+        return success
+    finally:
+        await conn.close()
+
+
+async def update_document_status(document_id: str, status: str) -> bool:
+    """
+    Update a document's status.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        result = await conn.execute(
+            """
+            UPDATE documents
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2::uuid
+            """,
+            status,
+            document_id
+        )
+        success = result == "UPDATE 1"
+        if success:
+            logger.info(f"Document {document_id} status changed to {status}")
+        return success
+    finally:
+        await conn.close()
+
+
+async def retry_ingestion_job(job_id: str) -> bool:
+    """
+    Retry a failed ingestion job. Resets status to pending, error to NULL,
+    and resets related document status to uploaded.
+    Only allowed for failed jobs.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        async with conn.transaction():
+            job = await conn.fetchrow(
+                "SELECT status, document_id FROM ingestion_jobs WHERE id = $1::uuid",
+                job_id
+            )
+            if not job:
+                raise ValueError(f"Ingestion job '{job_id}' not found.")
+            if job["status"] != "failed":
+                raise ValueError(f"Only failed jobs can be retried. Current status is '{job['status']}'.")
+
+            # Update job status
+            await conn.execute(
+                """
+                UPDATE ingestion_jobs
+                SET status = 'pending', error = NULL, updated_at = NOW()
+                WHERE id = $1::uuid
+                """,
+                job_id
+            )
+            logger.info(f"Job {job_id} status changed to pending")
+
+            # Update related document status to uploaded
+            doc_id = str(job["document_id"])
+            await conn.execute(
+                """
+                UPDATE documents
+                SET status = 'uploaded', updated_at = NOW()
+                WHERE id = $1::uuid
+                """,
+                doc_id
+            )
+            logger.info(f"Document {doc_id} status changed to uploaded")
+
+            return True
     finally:
         await conn.close()

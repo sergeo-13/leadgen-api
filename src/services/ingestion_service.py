@@ -9,6 +9,7 @@ from src.services.database import (
     get_job_by_id,
     insert_document_chunks,
     update_job_status,
+    update_document_status,
 )
 from src.services.document_parser import extract_text_from_pdf
 from src.services.embedding_service import generate_embeddings
@@ -51,6 +52,7 @@ async def process_job(job_id: str) -> dict:
 
     # 3. Claim job (mark as processing)
     await claim_job(job_id)
+    await update_document_status(document_id, "processing")
 
     source_bucket = job["source_bucket"]
     source_object_key = job["source_object_key"]
@@ -97,6 +99,7 @@ async def process_job(job_id: str) -> dict:
 
         # 11. Mark job completed
         await update_job_status(job_id, "completed")
+        await update_document_status(document_id, "processed")
         logger.info(f"Job {job_id} completed — {len(chunks)} chunks created")
 
         return {
@@ -110,6 +113,7 @@ async def process_job(job_id: str) -> dict:
         logger.error(f"Job {job_id} failed: {e}")
         try:
             await update_job_status(job_id, "failed", str(e))
+            await update_document_status(document_id, "failed")
         except Exception as db_err:
             logger.error(f"Could not persist failed status for job {job_id}: {db_err}")
         raise

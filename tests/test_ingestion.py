@@ -65,7 +65,8 @@ async def test_service_process_next_success():
          patch("src.services.ingestion_service.split_text") as mock_chunk, \
          patch("src.services.ingestion_service.generate_embeddings") as mock_embed, \
          patch("src.services.ingestion_service.insert_document_chunks", new_callable=AsyncMock) as mock_insert, \
-         patch("src.services.ingestion_service.update_job_status", new_callable=AsyncMock) as mock_update:
+         patch("src.services.ingestion_service.update_job_status", new_callable=AsyncMock) as mock_update, \
+         patch("src.services.ingestion_service.update_document_status", new_callable=AsyncMock) as mock_update_doc:
 
         mock_claim.return_value = claim_mock
         mock_get_job.return_value = job_mock
@@ -112,7 +113,8 @@ async def test_service_process_next_invalid_file_type():
     with patch("src.services.ingestion_service.get_and_claim_next_pending_job", new_callable=AsyncMock) as mock_claim, \
          patch("src.services.ingestion_service.get_job_by_id", new_callable=AsyncMock) as mock_get_job, \
          patch("src.services.ingestion_service.claim_job", new_callable=AsyncMock), \
-         patch("src.services.ingestion_service.update_job_status", new_callable=AsyncMock) as mock_update:
+         patch("src.services.ingestion_service.update_job_status", new_callable=AsyncMock) as mock_update, \
+         patch("src.services.ingestion_service.update_document_status", new_callable=AsyncMock):
 
         mock_claim.return_value = claim_mock
         mock_get_job.return_value = job_mock

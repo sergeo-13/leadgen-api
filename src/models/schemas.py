@@ -1,5 +1,4 @@
-"""Pydantic schemas for request/response models."""
-
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -57,6 +56,15 @@ class DocumentMetadata(BaseModel):
     use_case: str = Field(default="", description="Use case")
     tags: list[str] = Field(default_factory=list, description="List of tags")
     authors: list[str] = Field(default_factory=list, description="List of authors")
+
+    # Generic fields
+    description: Optional[str] = Field(None, description="Description")
+    source_type: Optional[str] = Field(None, description="Source type")
+    source_url: Optional[str] = Field(None, description="Source URL")
+    file_name: Optional[str] = Field(None, description="File name")
+    mime_type: Optional[str] = Field(None, description="MIME type")
+    file_size: Optional[int] = Field(None, description="File size in bytes")
+    metadata: Optional[dict] = Field(None, description="Custom JSON metadata")
 
 
 class DocumentIngestRequest(BaseModel):
@@ -121,9 +129,96 @@ class DocumentSearchResult(BaseModel):
     content: str
     score: float
 
+    # Generic fields
+    description: Optional[str] = None
+    source_type: Optional[str] = None
+    source_url: Optional[str] = None
+    file_name: Optional[str] = None
+    mime_type: Optional[str] = None
+    file_size: Optional[int] = None
+    metadata: Optional[dict] = None
+
 
 class DocumentSearchResponse(BaseModel):
     """Response schema for document search."""
 
     query: str
     results: list[DocumentSearchResult]
+
+
+class DocumentResponse(BaseModel):
+    """Response schema for a complete document details."""
+
+    id: str
+    title: str
+    type: Optional[str] = None
+    client_name: Optional[str] = None
+    industry: Optional[str] = None
+    geography: Optional[str] = None
+    use_case: Optional[str] = None
+    tags: list[str] = Field(default_factory=list)
+    authors: list[str] = Field(default_factory=list)
+    source_bucket: str
+    source_object_key: str
+    status: str
+    confidentiality_level: Optional[str] = "internal"
+    description: Optional[str] = None
+    source_type: Optional[str] = None
+    source_url: Optional[str] = None
+    file_name: Optional[str] = None
+    mime_type: Optional[str] = None
+    file_size: Optional[int] = None
+    metadata: Optional[dict] = None
+    chunks_count: int = Field(default=0)
+    created_at: datetime
+    updated_at: datetime
+
+
+class JobResponse(BaseModel):
+    """Response schema for ingestion jobs."""
+
+    job_id: str
+    document_id: str
+    source_bucket: str
+    source_object_key: str
+    status: str
+    error: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentUploadResponse(BaseModel):
+    """Response schema for document uploads."""
+
+    document_id: str
+    job_id: str
+    status: str
+    source_object_key: str
+    source_bucket: str
+    chunks_created: Optional[int] = None
+
+
+class ReingestRequest(BaseModel):
+    """Request schema for index rebuild reingestion."""
+
+    process_immediately: bool = Field(default=True)
+    reason: str = Field(..., description="Reason for re-ingestion")
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v):
+        allowed = {
+            "manual_rebuild",
+            "file_updated",
+            "parser_changed",
+            "chunking_changed",
+            "embedding_model_changed",
+            "failed_partial_ingestion",
+            "metadata_in_embedding_changed"
+        }
+        if v not in allowed:
+            raise ValueError(
+                f"Reason must be one of: {', '.join(sorted(allowed))}"
+            )
+        return v
+

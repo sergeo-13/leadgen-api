@@ -216,16 +216,30 @@ To manually ingest and process a document in the current MVP version:
 }
 ```
 
-### Document Ingestion & Search
+### Document Ingestion, Management & Search
 - **POST** `/api/v1/documents/upload` - Upload a PDF (`multipart/form-data`) and optionally
   process it immediately (parse → chunk → embed). Returns `chunks_created` when done.
 - **POST** `/api/v1/documents/ingest` - Register metadata for a file already in MinIO and
   schedule a pending ingestion job.
-- **POST** `/api/v1/ingestion/process-next` - Claim and run the next pending job.
+- **GET** `/api/v1/documents` - List all documents in the directory, including computed chunk counts.
+- **GET** `/api/v1/documents/{document_id}` - Get details and metadata for a specific document.
+- **PATCH** `/api/v1/documents/{document_id}` - Update a document's title and metadata (does not trigger re-ingest).
+- **POST** `/api/v1/documents/{document_id}/reingest` - Rebuild Search Index from the existing source file (requires a valid `reason`).
+- **POST** `/api/v1/documents/{document_id}/replace-file` - Upload a new version of the file, update database source references, and rebuild the search index immediately.
+- **POST** `/api/v1/documents/{document_id}/archive` - Archive a document (sets status to `'archived'`).
+- **POST** `/api/v1/documents/{document_id}/restore` - Restore an archived document.
+- **GET** `/api/v1/documents/{document_id}/jobs` - Get ingestion job runs associated with a document.
 - **POST** `/api/v1/documents/search` - Semantic search using pgvector cosine similarity.
 
+### Ingestion Queue & Job Operations
+- **POST** `/api/v1/ingestion/process-next` - Claim and run the next pending ingestion job in the database.
+- **GET** `/api/v1/ingestion/jobs` - List all ingestion jobs with optional query filtering by `status` and `document_id` plus pagination (`limit`, `offset`).
+- **GET** `/api/v1/ingestion/jobs/{job_id}` - Get specific job details including status and failure error message.
+- **POST** `/api/v1/ingestion/jobs/{job_id}/retry` - Reset a failed job to `'pending'` and related document to `'uploaded'`, with option to `process_immediately`.
+
 ### Admin UI
-- **GET** `/ui` - Internal admin interface for uploading documents and running searches.
+- **GET** `/ui` - Internal admin interface for uploading/managing documents, viewing job runs, and executing semantic searches.
+
 
 ## Configuration
 
