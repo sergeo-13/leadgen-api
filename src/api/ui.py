@@ -636,6 +636,13 @@ _UI_HTML = r"""<!DOCTYPE html>
         <span>📂 Documents Directory</span>
         <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">↻ Refresh</button>
       </div>
+      
+      <!-- Inline error banner for document loading failures -->
+      <div id="directory-error-banner" style="display: none; margin: 1rem 1.8rem 0; padding: 0.8rem 1.2rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; color: var(--danger); font-size: 0.88rem; align-items: center; justify-content: space-between;">
+        <span style="font-weight: 500;">Failed to load documents directory.</span>
+        <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">Retry</button>
+      </div>
+
       <div class="table-container">
         <table>
           <thead>
@@ -857,10 +864,15 @@ _UI_HTML = r"""<!DOCTYPE html>
       </div>
 
       <div class="modal-footer">
-        <div>
-          <!-- Edit mode left actions -->
-          <button class="btn btn-danger" id="btnArchive" onclick="toggleArchive()"></button>
-          <button class="btn btn-warning" id="btnRebuild" onclick="triggerRebuild()"></button>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <!-- Edit mode left actions -->
+            <button class="btn btn-danger" id="btnArchive" onclick="toggleArchive()"></button>
+            <button class="btn btn-warning" id="btnRebuild" onclick="triggerRebuild()"></button>
+          </div>
+          <div id="rebuild-helper" style="font-size: 0.72rem; color: var(--muted); max-width: 300px; line-height: 1.2;">
+            Recreates chunks and embeddings from the current source file. Not needed for metadata edits.
+          </div>
         </div>
         <div class="modal-actions-right">
           <button class="btn btn-secondary" onclick="closeModal()">Close</button>
@@ -896,9 +908,10 @@ _UI_HTML = r"""<!DOCTYPE html>
         const resp = await fetch('/api/v1/documents');
         if (!resp.ok) throw new Error('Failed to fetch documents directory.');
         allDocuments = await resp.json();
+        document.getElementById('directory-error-banner').style.display = 'none';
         renderDocuments();
       } catch (err) {
-        alert(err.message);
+        document.getElementById('directory-error-banner').style.display = 'flex';
       }
     }
 
@@ -927,13 +940,22 @@ _UI_HTML = r"""<!DOCTYPE html>
           <td style="font-weight: 500;">${doc.chunks_count}</td>
           <td>
             <div style="max-width: 250px; display:flex; flex-wrap:wrap; gap:0.25rem;">
-              ${(doc.tags || []).map(t => `<span style="font-size:0.7rem; background:var(--surface2); border:1px solid var(--border); padding:0.1rem 0.35rem; border-radius:4px; color:var(--muted);">${esc(t)}</span>`).join('')}
+              ${(() => {
+                const tags = doc.tags || [];
+                const maxTags = 5;
+                const visible = tags.slice(0, maxTags);
+                let tagsHtml = visible.map(t => `<span style="font-size:0.7rem; background:var(--surface2); border:1px solid var(--border); padding:0.1rem 0.35rem; border-radius:4px; color:var(--muted);">${esc(t)}</span>`).join('');
+                if (tags.length > maxTags) {
+                  tagsHtml += `<span style="font-size:0.7rem; font-weight:600; color:var(--muted); align-self:center; margin-left:0.1rem;">+${tags.length - maxTags} more</span>`;
+                }
+                return tagsHtml;
+              })()}
               ${(doc.authors || []).map(a => `<span style="font-size:0.7rem; background:rgba(99, 102, 241, 0.1); border:1px solid rgba(99, 102, 241, 0.2); padding:0.1rem 0.35rem; border-radius:4px; color:var(--text);">${esc(a)}</span>`).join('')}
             </div>
           </td>
           <td style="color:var(--muted); font-size:0.8rem;">${new Date(doc.created_at).toLocaleString()}</td>
           <td>
-            <button class="btn btn-secondary btn-xs" onclick="openEditModal('${doc.id}')">Edit / Admin</button>
+            <button class="btn btn-secondary btn-xs" onclick="openEditModal('${doc.id}')">Manage</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -953,6 +975,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       document.getElementById('modalJobsSection').style.display = 'none';
       document.getElementById('btnArchive').style.display = 'none';
       document.getElementById('btnRebuild').style.display = 'none';
+      document.getElementById('rebuild-helper').style.display = 'none';
       
       document.getElementById('submit-btn-txt').textContent = 'Upload & Process';
 
@@ -980,6 +1003,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       document.getElementById('modalJobsSection').style.display = 'block';
       document.getElementById('btnArchive').style.display = 'inline-flex';
       document.getElementById('btnRebuild').style.display = 'inline-flex';
+      document.getElementById('rebuild-helper').style.display = 'block';
       
       document.getElementById('submit-btn-txt').textContent = 'Save Metadata';
 
@@ -1195,6 +1219,11 @@ _UI_HTML = r"""<!DOCTYPE html>
       const isArchived = doc.status === 'archived';
       const action = isArchived ? 'restore' : 'archive';
       
+      if (!isArchived) {
+        const confirmed = confirm("Archive this document? Archived documents are hidden from semantic search but remain stored.");
+        if (!confirmed) return;
+      }
+      
       try {
         const resp = await fetch(`/api/v1/documents/${currentDocId}/${action}`, { method: 'POST' });
         const data = await resp.json();
@@ -1213,7 +1242,7 @@ _UI_HTML = r"""<!DOCTYPE html>
     async function triggerRebuild() {
       if (!currentDocId) return;
       
-      const confirmed = confirm("Are you sure you want to Rebuild Search Index for this document? This will clear existing chunks and re-embed the file.");
+      const confirmed = confirm("Rebuild search index? This will delete current chunks, re-read the stored source file, recreate chunks, and regenerate embeddings. Metadata changes do not require this.");
       if (!confirmed) return;
 
       try {
@@ -1246,7 +1275,7 @@ _UI_HTML = r"""<!DOCTYPE html>
         return;
       }
 
-      const confirmed = confirm("Are you sure you want to replace the source file? This will upload the new version and trigger Rebuild Search Index immediately.");
+      const confirmed = confirm("Replace source file and rebuild search index? This will upload a new versioned source file, update the document source, delete old chunks, and generate new embeddings. Existing metadata will be preserved.");
       if (!confirmed) return;
 
       const btn = document.getElementById('btnReplaceFile');

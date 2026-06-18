@@ -122,7 +122,7 @@ async def ingest_document(payload: DocumentIngestRequest):
     "/documents/upload",
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Upload a PDF file and optionally process it immediately",
+    summary="Upload a source file and optionally process it immediately",
 )
 async def upload_document(
     file: UploadFile,
@@ -141,7 +141,7 @@ async def upload_document(
     process_immediately: bool = Form(default=True),
 ):
     """
-    Upload a PDF document to MinIO, register it in the database, and
+    Upload a source document to MinIO, register it in the database, and
     optionally run the full ingestion pipeline immediately.
 
     When process_immediately=true the response includes chunks_created.
