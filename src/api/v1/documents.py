@@ -36,6 +36,7 @@ from src.services.database import (
     update_document_status,
 )
 from src.services.embedding_service import generate_embeddings
+from src.services.document_parser import SUPPORTED_EXTENSIONS, SUPPORTED_FORMATS_ERROR
 from src.services.ingestion_service import process_job
 from src.services.minio_service import check_object_exists, upload_object
 
@@ -155,12 +156,11 @@ async def upload_document(
         )
 
     # 2. Check supported formats
-    supported_extensions = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
     _, ext = os.path.splitext(file.filename.lower())
-    if ext not in supported_extensions:
+    if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX."
+            detail=SUPPORTED_FORMATS_ERROR
         )
 
     # 3. Build a safe base key from the original filename
@@ -513,12 +513,11 @@ async def replace_document_file(
             detail="No file provided."
         )
 
-    supported_extensions = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
     _, ext = os.path.splitext(file.filename.lower())
-    if ext not in supported_extensions:
+    if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX."
+            detail=SUPPORTED_FORMATS_ERROR
         )
 
     # Build unique versioned key: documents/{document_id}/versions/{timestamp}_{safe_filename}

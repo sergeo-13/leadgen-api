@@ -7,11 +7,16 @@ from src.services.database import (
     claim_job,
     get_and_claim_next_pending_job,
     get_job_by_id,
+    get_document_by_id,
     insert_document_chunks,
     update_job_status,
     update_document_status,
 )
-from src.services.document_parser import extract_text
+from src.services.document_parser import (
+    extract_text,
+    SUPPORTED_EXTENSIONS,
+    SUPPORTED_FORMATS_ERROR,
+)
 from src.services.embedding_service import generate_embeddings
 from src.services.minio_service import download_object
 
@@ -50,8 +55,9 @@ async def process_job(job_id: str) -> dict:
             "document_id": document_id,
         }
 
-    # 3. Claim job (mark as processing)
-    await claim_job(job_id)
+    # 3. Claim job (mark as processing) if not already claimed
+    if job["status"] != "processing":
+        await claim_job(job_id)
     await update_document_status(document_id, "processing")
 
     source_bucket = job["source_bucket"]
@@ -62,18 +68,21 @@ async def process_job(job_id: str) -> dict:
     try:
         # 4. Check supported file formats
         import os
-        supported_extensions = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
         _, ext = os.path.splitext(source_object_key.lower())
-        if ext not in supported_extensions:
-            raise ValueError("Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX.")
+        if ext not in SUPPORTED_EXTENSIONS:
+            raise ValueError(SUPPORTED_FORMATS_ERROR)
+
+        # Fetch document details to get its MIME type
+        doc = await get_document_by_id(document_id)
+        mime_type = doc.get("mime_type") if doc else None
 
         # 5. Download file from MinIO
         logger.info(f"Downloading '{source_object_key}' from bucket '{source_bucket}'")
         file_bytes = download_object(source_bucket, source_object_key)
 
-        # 6. Extract text
+        # 6. Extract text, passing mime_type as fallback
         logger.info(f"Extracting text from file {source_object_key}")
-        text = extract_text(file_bytes, source_object_key)
+        text = extract_text(file_bytes, source_object_key, mime_type)
         if not text or not text.strip():
             raise ValueError(
                 "No text could be extracted from the file — "

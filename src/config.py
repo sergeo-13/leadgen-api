@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     # Application
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
-    APP_NAME: str = "Leadgen Bot API"
+    APP_NAME: str = "Leadgen API"
     APP_VERSION: str = "0.1.1"
 
     # OpenAI

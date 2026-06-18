@@ -183,6 +183,7 @@ async def test_parsing_failure_marks_job_and_doc_failed():
     
     with patch("src.services.ingestion_service.get_and_claim_next_pending_job", new_callable=AsyncMock) as mock_claim, \
          patch("src.services.ingestion_service.get_job_by_id", new_callable=AsyncMock) as mock_get_job, \
+         patch("src.services.ingestion_service.get_document_by_id", new_callable=AsyncMock) as mock_get_doc, \
          patch("src.services.ingestion_service.claim_job", new_callable=AsyncMock), \
          patch("src.services.ingestion_service.download_object") as mock_download, \
          patch("src.services.ingestion_service.insert_document_chunks", new_callable=AsyncMock) as mock_insert, \
@@ -191,6 +192,7 @@ async def test_parsing_failure_marks_job_and_doc_failed():
          
         mock_claim.return_value = claim_mock
         mock_get_job.return_value = job_mock
+        mock_get_doc.return_value = {"id": "doc-uuid-1", "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
         mock_download.return_value = b"this is corrupt binary that python-docx cannot read"
         
         with pytest.raises(ValueError) as exc:

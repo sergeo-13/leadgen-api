@@ -1,11 +1,11 @@
-# Leadgen Bot - AI-Powered Lead Generation Platform
+# Leadgen API - Knowledge Base API Starter
 
 A FastAPI-based service for intelligent lead generation and processing.
 
 ## Project Structure
 
 ```
-leadgen-bot/
+leadgen-api/
 ├── src/
 │   ├── __init__.py
 │   ├── main.py                 # FastAPI application entry point
@@ -115,7 +115,7 @@ Features:
 To manually ingest and process a document in the current MVP version:
 
 1. **Upload File to MinIO**:
-   Upload your target PDF document (e.g. `leadgen_prd_expanded.pdf`) manually to the MinIO bucket `leadgen-docs`.
+   Upload your target document (e.g. `leadgen_prd_expanded.pdf`) manually to the MinIO bucket `leadgen-docs`.
 
 2. **Ingest Document Metadata**:
    Call the ingest endpoint to create the database rows and queue the ingestion job:

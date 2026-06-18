@@ -59,6 +59,7 @@ async def test_service_process_next_success():
 
     with patch("src.services.ingestion_service.get_and_claim_next_pending_job", new_callable=AsyncMock) as mock_claim, \
          patch("src.services.ingestion_service.get_job_by_id", new_callable=AsyncMock) as mock_get_job, \
+         patch("src.services.ingestion_service.get_document_by_id", new_callable=AsyncMock) as mock_get_doc, \
          patch("src.services.ingestion_service.claim_job", new_callable=AsyncMock) as mock_claim_job, \
          patch("src.services.ingestion_service.download_object") as mock_download, \
          patch("src.services.ingestion_service.extract_text") as mock_parse, \
@@ -70,6 +71,7 @@ async def test_service_process_next_success():
 
         mock_claim.return_value = claim_mock
         mock_get_job.return_value = job_mock
+        mock_get_doc.return_value = {"id": "doc-uuid-1", "mime_type": "application/pdf"}
         mock_download.return_value = b"%PDF-1.4 mock content"
         mock_parse.return_value = "This is document content."
         mock_chunk.return_value = ["This is document content."]
@@ -88,7 +90,7 @@ async def test_service_process_next_success():
         mock_get_job.assert_called_once_with("job-uuid-1")
         mock_claim_job.assert_called_once_with("job-uuid-1")
         mock_download.assert_called_once_with("leadgen-docs", "proposal.pdf")
-        mock_parse.assert_called_once_with(b"%PDF-1.4 mock content", "proposal.pdf")
+        mock_parse.assert_called_once_with(b"%PDF-1.4 mock content", "proposal.pdf", "application/pdf")
         mock_chunk.assert_called_once_with("This is document content.")
         mock_embed.assert_called_once_with(["This is document content."])
         mock_insert.assert_called_once_with("doc-uuid-1", [(0, "This is document content.", [0.1] * 1536)])

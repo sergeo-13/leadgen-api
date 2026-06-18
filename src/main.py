@@ -34,7 +34,7 @@ app.include_router(ui.router, tags=["ui"])
 async def root():
     """Root endpoint."""
     return {
-        "message": "Welcome to Leadgen Bot API",
+        "message": "Welcome to Leadgen API",
         "version": settings.APP_VERSION,
         "docs": "/docs",
     }

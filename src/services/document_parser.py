@@ -11,6 +11,9 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
+SUPPORTED_FORMATS_ERROR = "Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX."
+
 
 def _apply_char_limit(text: str) -> str:
     """Helper to safely apply the character extraction limit."""
@@ -223,4 +226,4 @@ def extract_text(file_bytes: bytes, filename: str, mime_type: Optional[str] = No
         elif mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
             return extract_text_from_xlsx(file_bytes)
             
-        raise ValueError("Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX.")
+        raise ValueError(SUPPORTED_FORMATS_ERROR)
