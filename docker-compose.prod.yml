@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  leadgen-api:
+    image: ghcr.io/sergeo-13/leadgen-api:prod
+    container_name: leadgen-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: leadgen-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: leadgen
+      POSTGRES_USER: leadgen
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: leadgen-docs
+      MINIO_SECURE: "false"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+    networks:
+      - leadgen_net
+
+networks:
+  leadgen_net:
+    external: true

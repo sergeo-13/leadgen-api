@@ -267,10 +267,29 @@ flake8 src/
 mypy src/
 ```
 
-## Deployment
+## Docker deployment
 
-The service is containerized and ready for deployment in any Docker-compatible environment (Kubernetes, Docker Swarm, etc.).
+GitHub Actions builds and pushes images to GitHub Container Registry (GHCR) on pushes to the `main` branch.
+
+- **Production image**: `ghcr.io/sergeo-13/leadgen-api:prod`
+- **Development image**: `ghcr.io/sergeo-13/leadgen-api:dev`
+
+### Hostinger Docker Manager Configuration
+When deploying on Hostinger Docker Manager, configure it to pull using `image:` instead of building locally with `build:`.
+
+- **Production deployment** (`docker-compose.prod.yml`):
+  - Service: `leadgen-api`
+  - Container name: `leadgen-api`
+  - Port mapping: `8000:8000` (external `8000` mapped to container `8000`)
+- **Development deployment** (`docker-compose.dev.yml`):
+  - Service: `leadgen-api-dev`
+  - Container name: `leadgen-api-dev`
+  - Port mapping: `3001:8000` (external `3001` mapped to container `8000`)
+
+> [!IMPORTANT]
+> After the first successful GitHub Actions build, you may need to go to your GitHub Package settings and make the package public so Hostinger can pull the image without requiring registry authentication.
 
 ## License
 
 MIT
+
