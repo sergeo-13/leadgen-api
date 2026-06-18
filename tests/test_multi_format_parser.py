@@ -88,7 +88,7 @@ def test_extract_text_xlsx():
     ws.cell(row=1, column=2, value="col2")
     ws.cell(row=2, column=1, value="val1")
     ws.cell(row=2, column=2, value="val2")
-    ws.cell(row=3, column=1, value=" ") # empty row
+    ws.cell(row=3, column=1, value=" ")  # empty row
     ws.cell(row=3, column=2, value=None)
     ws.cell(row=4, column=1, value="val3")
     
@@ -121,7 +121,7 @@ def test_safety_truncation_limits():
 
 def test_safety_file_size_limit():
     """Test files exceeding MAX_FILE_SIZE_MB trigger a ValueError."""
-    with patch.object(settings, "MAX_FILE_SIZE_MB", 0.00001): # very small
+    with patch.object(settings, "MAX_FILE_SIZE_MB", 0.00001):  # very small
         text_bytes = ("a" * 200).encode("utf-8")
         with pytest.raises(ValueError) as exc:
             extract_text(text_bytes, "large.txt")

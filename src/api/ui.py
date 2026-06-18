@@ -611,6 +611,47 @@ _UI_HTML = r"""<!DOCTYPE html>
       color: #f87171;
     }
 
+    /* ── Confirmation Overlay ── */
+    .confirm-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(4, 6, 10, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 1rem;
+    }
+    .confirm-dialog {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 480px;
+      padding: 1.8rem;
+      box-shadow: var(--shadow-lg);
+    }
+    .confirm-dialog h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 0.8rem;
+      color: var(--text);
+    }
+    .confirm-dialog p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 1.8rem;
+    }
+    .confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
   </style>
 </head>
 <body>
@@ -887,10 +928,79 @@ _UI_HTML = r"""<!DOCTYPE html>
   </div>
 
 
+  <!-- ═════ REUSABLE CONFIRMATION MODAL ═════ -->
+  <div id="confirmOverlay" class="confirm-overlay" style="display:none;">
+    <div class="confirm-dialog">
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMessage"></p>
+      <div class="confirm-actions">
+        <button id="confirmCancelBtn" class="btn btn-secondary" onclick="handleConfirm(false)">Cancel</button>
+        <button id="confirmOkBtn" class="btn" onclick="handleConfirm(true)">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+
   <script>
     // ── Global States ──
     let allDocuments = [];
     let currentDocId = null; // null represents Create Mode, defined string represents Edit Mode
+
+    let confirmResolve = null;
+
+    async function showConfirmDialog({
+      title,
+      message,
+      confirmLabel = 'Confirm',
+      cancelLabel = 'Cancel',
+      tone = 'warning'
+    }) {
+      const overlay = document.getElementById('confirmOverlay');
+      const titleEl = document.getElementById('confirmTitle');
+      const messageEl = document.getElementById('confirmMessage');
+      const cancelBtn = document.getElementById('confirmCancelBtn');
+      const okBtn = document.getElementById('confirmOkBtn');
+
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      cancelBtn.textContent = cancelLabel;
+      okBtn.textContent = confirmLabel;
+
+      // Reset styles
+      okBtn.className = 'btn';
+      if (tone === 'danger') {
+        okBtn.classList.add('btn-danger');
+      } else if (tone === 'warning') {
+        okBtn.classList.add('btn-warning');
+      } else {
+        okBtn.classList.add('btn-primary');
+      }
+
+      overlay.style.display = 'flex';
+
+      return new Promise((resolve) => {
+        confirmResolve = resolve;
+      });
+    }
+
+    function handleConfirm(confirmed) {
+      const overlay = document.getElementById('confirmOverlay');
+      overlay.style.display = 'none';
+      if (confirmResolve) {
+        confirmResolve(confirmed);
+        confirmResolve = null;
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const overlay = document.getElementById('confirmOverlay');
+        if (overlay && overlay.style.display === 'flex') {
+          handleConfirm(false);
+          e.stopImmediatePropagation();
+        }
+      }
+    }, true);
 
     const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -1220,7 +1330,13 @@ _UI_HTML = r"""<!DOCTYPE html>
       const action = isArchived ? 'restore' : 'archive';
       
       if (!isArchived) {
-        const confirmed = confirm("Archive this document? Archived documents are hidden from semantic search but remain stored.");
+        const confirmed = await showConfirmDialog({
+          title: 'Archive document?',
+          message: 'Archived documents are hidden from semantic search but remain stored.',
+          confirmLabel: 'Archive Document',
+          cancelLabel: 'Cancel',
+          tone: 'danger'
+        });
         if (!confirmed) return;
       }
       
@@ -1242,7 +1358,13 @@ _UI_HTML = r"""<!DOCTYPE html>
     async function triggerRebuild() {
       if (!currentDocId) return;
       
-      const confirmed = confirm("Rebuild search index? This will delete current chunks, re-read the stored source file, recreate chunks, and regenerate embeddings. Metadata changes do not require this.");
+      const confirmed = await showConfirmDialog({
+        title: 'Rebuild search index?',
+        message: 'This will delete current chunks, re-read the stored source file, recreate chunks, and regenerate embeddings. Metadata changes do not require this.',
+        confirmLabel: 'Rebuild Search Index',
+        cancelLabel: 'Cancel',
+        tone: 'warning'
+      });
       if (!confirmed) return;
 
       try {
@@ -1271,11 +1393,17 @@ _UI_HTML = r"""<!DOCTYPE html>
       if (!currentDocId) return;
       const fileEl = document.getElementById('replace-file-input');
       if (!fileEl.files.length) {
-        alert("Please select a source file first.");
+        showAlert(false, "Please select a source file first.");
         return;
       }
 
-      const confirmed = confirm("Replace source file and rebuild search index? This will upload a new versioned source file, update the document source, delete old chunks, and generate new embeddings. Existing metadata will be preserved.");
+      const confirmed = await showConfirmDialog({
+        title: 'Replace source file and rebuild search index?',
+        message: 'This will upload a new versioned source file, update the document source, delete old chunks, and generate new embeddings. Existing metadata will be preserved.',
+        confirmLabel: 'Replace & Rebuild',
+        cancelLabel: 'Cancel',
+        tone: 'warning'
+      });
       if (!confirmed) return;
 
       const btn = document.getElementById('btnReplaceFile');

@@ -1,7 +1,6 @@
 """Tests for document stabilization endpoints."""
 
 from unittest.mock import AsyncMock, patch
-import pytest
 from datetime import datetime
 
 
@@ -374,7 +373,7 @@ def test_retry_job_success(client):
         "document_id": "doc-1",
         "source_bucket": "docs",
         "source_object_key": "doc1.pdf",
-        "status": "completed", # updated status after processing
+        "status": "completed",  # updated status after processing
         "error": None,
         "created_at": datetime.now(),
         "updated_at": datetime.now()

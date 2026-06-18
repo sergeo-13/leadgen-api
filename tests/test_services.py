@@ -1,6 +1,5 @@
 """Unit tests for services: chunker, embedding_service, minio_service."""
 
-import io
 import pytest
 from unittest.mock import MagicMock, patch
 

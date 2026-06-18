@@ -67,7 +67,7 @@ async def test_service_process_next_success():
          patch("src.services.ingestion_service.generate_embeddings") as mock_embed, \
          patch("src.services.ingestion_service.insert_document_chunks", new_callable=AsyncMock) as mock_insert, \
          patch("src.services.ingestion_service.update_job_status", new_callable=AsyncMock) as mock_update, \
-         patch("src.services.ingestion_service.update_document_status", new_callable=AsyncMock) as mock_update_doc:
+         patch("src.services.ingestion_service.update_document_status", new_callable=AsyncMock):
 
         mock_claim.return_value = claim_mock
         mock_get_job.return_value = job_mock
