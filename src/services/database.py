@@ -11,6 +11,20 @@ from src.models.schemas import DocumentMetadata, DocumentSearchFilters
 logger = logging.getLogger(__name__)
 
 
+def _normalize_jsonb(value):
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse JSONB metadata string, returning empty dict")
+            return {}
+    return {}
+
+
 async def check_postgres() -> bool:
     """
     Check PostgreSQL connection.
@@ -437,7 +451,7 @@ async def search_document_chunks(
             res["chunk_id"] = str(res["chunk_id"])
             res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
             res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
-            res["metadata"] = dict(res["metadata"]) if res.get("metadata") is not None else {}
+            res["metadata"] = _normalize_jsonb(res.get("metadata"))
             results.append(res)
         return results
     finally:
@@ -475,7 +489,7 @@ async def list_documents() -> List[dict]:
             res["id"] = str(res["id"])
             res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
             res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
-            res["metadata"] = dict(res["metadata"]) if res.get("metadata") is not None else {}
+            res["metadata"] = _normalize_jsonb(res.get("metadata"))
             results.append(res)
         return results
     finally:
@@ -513,7 +527,7 @@ async def get_document_by_id(document_id: str) -> Optional[dict]:
         res["id"] = str(res["id"])
         res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
         res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
-        res["metadata"] = dict(res["metadata"]) if res.get("metadata") is not None else {}
+        res["metadata"] = _normalize_jsonb(res.get("metadata"))
         return res
     finally:
         await conn.close()
