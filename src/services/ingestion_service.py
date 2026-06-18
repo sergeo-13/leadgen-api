@@ -11,7 +11,7 @@ from src.services.database import (
     update_job_status,
     update_document_status,
 )
-from src.services.document_parser import extract_text_from_pdf
+from src.services.document_parser import extract_text
 from src.services.embedding_service import generate_embeddings
 from src.services.minio_service import download_object
 
@@ -60,21 +60,24 @@ async def process_job(job_id: str) -> dict:
     logger.info(f"Processing job {job_id} for document {document_id}")
 
     try:
-        # 4. MVP: PDF only
-        if not source_object_key.lower().endswith(".pdf"):
-            raise ValueError("Only PDF files are supported in this MVP version.")
+        # 4. Check supported file formats
+        import os
+        supported_extensions = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
+        _, ext = os.path.splitext(source_object_key.lower())
+        if ext not in supported_extensions:
+            raise ValueError("Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX.")
 
         # 5. Download file from MinIO
         logger.info(f"Downloading '{source_object_key}' from bucket '{source_bucket}'")
-        pdf_bytes = download_object(source_bucket, source_object_key)
+        file_bytes = download_object(source_bucket, source_object_key)
 
         # 6. Extract text
-        logger.info("Extracting text from PDF")
-        text = extract_text_from_pdf(pdf_bytes)
+        logger.info(f"Extracting text from file {source_object_key}")
+        text = extract_text(file_bytes, source_object_key)
         if not text or not text.strip():
             raise ValueError(
-                "No text could be extracted from the PDF — "
-                "the file may be empty or contain only scanned images."
+                "No text could be extracted from the file — "
+                "the file may be empty or invalid."
             )
 
         # 7. Split into chunks

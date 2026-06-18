@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = os.getenv("MINIO_BUCKET", "leadgen-docs")
     MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() == "true"
 
+    # Ingestion Safety Limits
+    MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
+    MAX_EXTRACTED_CHARS: int = int(os.getenv("MAX_EXTRACTED_CHARS", "500000"))
+    MAX_CSV_ROWS: int = int(os.getenv("MAX_CSV_ROWS", "5000"))
+    MAX_XLSX_ROWS_PER_SHEET: int = int(os.getenv("MAX_XLSX_ROWS_PER_SHEET", "5000"))
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

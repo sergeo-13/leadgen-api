@@ -25,7 +25,7 @@ leadgen-bot/
 │   │   ├── __init__.py
 │   │   ├── database.py         # Database connection management
 │   │   ├── minio_service.py    # MinIO operations
-│   │   ├── document_parser.py  # PDF text extraction
+│   │   ├── document_parser.py  # Document text extraction (PDF, TXT, MD, CSV, DOCX, XLSX)
 │   │   ├── chunker.py          # Text chunking logic
 │   │   ├── embedding_service.py # OpenAI embeddings generation
 │   │   └── ingestion_service.py # Ingestion coordination logic
@@ -98,7 +98,7 @@ GET http://localhost:8000/ui
 ```
 
 Features:
-- **Upload Document** — select a PDF, fill metadata, click submit. The file is uploaded
+- **Upload Document** — select a supported file (PDF, TXT, Markdown, CSV, DOCX, XLSX), fill metadata, click submit. The file is uploaded
   to MinIO, database rows are created, and (by default) the full ingestion pipeline runs
   immediately: download → parse → chunk → embed.
 - **Semantic Search** — type a natural-language query, get back matching chunks with
@@ -217,7 +217,7 @@ To manually ingest and process a document in the current MVP version:
 ```
 
 ### Document Ingestion, Management & Search
-- **POST** `/api/v1/documents/upload` - Upload a PDF (`multipart/form-data`) and optionally
+- **POST** `/api/v1/documents/upload` - Upload a document source file (`multipart/form-data`) and optionally
   process it immediately (parse → chunk → embed). Returns `chunks_created` when done.
 - **POST** `/api/v1/documents/ingest` - Register metadata for a file already in MinIO and
   schedule a pending ingestion job.

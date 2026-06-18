@@ -154,11 +154,13 @@ async def upload_document(
             detail="No file provided.",
         )
 
-    # 2. MVP: PDF only
-    if not file.filename.lower().endswith(".pdf"):
+    # 2. Check supported formats
+    supported_extensions = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
+    _, ext = os.path.splitext(file.filename.lower())
+    if ext not in supported_extensions:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF files are supported in this MVP version.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX."
         )
 
     # 3. Build a safe base key from the original filename
@@ -190,11 +192,21 @@ async def upload_document(
         )
 
     file_size = len(file_bytes)
-    mime_type = file.content_type or "application/pdf"
+    mime_mappings = {
+        ".pdf": "application/pdf",
+        ".txt": "text/plain",
+        ".md": "text/markdown",
+        ".markdown": "text/markdown",
+        ".csv": "text/csv",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+    inferred_mime = mime_mappings.get(ext, "application/octet-stream")
+    mime_type = file.content_type or inferred_mime
 
     # 6. Upload to MinIO
     try:
-        upload_object(settings.MINIO_BUCKET, object_key, file_bytes, "application/pdf")
+        upload_object(settings.MINIO_BUCKET, object_key, file_bytes, mime_type)
         logger.info(f"Document uploaded successfully: {object_key} (size={file_size} bytes)")
     except Exception as e:
         logger.error(f"MinIO upload failed for '{object_key}': {e}")
@@ -501,10 +513,12 @@ async def replace_document_file(
             detail="No file provided."
         )
 
-    if not file.filename.lower().endswith(".pdf"):
+    supported_extensions = {".pdf", ".txt", ".md", ".markdown", ".csv", ".docx", ".xlsx"}
+    _, ext = os.path.splitext(file.filename.lower())
+    if ext not in supported_extensions:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF files are supported in this MVP version."
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX."
         )
 
     # Build unique versioned key: documents/{document_id}/versions/{timestamp}_{safe_filename}
@@ -521,11 +535,21 @@ async def replace_document_file(
         )
 
     file_size = len(file_bytes)
-    mime_type = file.content_type or "application/pdf"
+    mime_mappings = {
+        ".pdf": "application/pdf",
+        ".txt": "text/plain",
+        ".md": "text/markdown",
+        ".markdown": "text/markdown",
+        ".csv": "text/csv",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+    inferred_mime = mime_mappings.get(ext, "application/octet-stream")
+    mime_type = file.content_type or inferred_mime
 
     # Upload new version to MinIO
     try:
-        upload_object(settings.MINIO_BUCKET, new_object_key, file_bytes, "application/pdf")
+        upload_object(settings.MINIO_BUCKET, new_object_key, file_bytes, mime_type)
         logger.info(f"New document version uploaded to MinIO: {new_object_key}")
     except Exception as e:
         logger.error(f"MinIO upload failed during replace file: {e}")

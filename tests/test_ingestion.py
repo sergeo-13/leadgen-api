@@ -61,7 +61,7 @@ async def test_service_process_next_success():
          patch("src.services.ingestion_service.get_job_by_id", new_callable=AsyncMock) as mock_get_job, \
          patch("src.services.ingestion_service.claim_job", new_callable=AsyncMock) as mock_claim_job, \
          patch("src.services.ingestion_service.download_object") as mock_download, \
-         patch("src.services.ingestion_service.extract_text_from_pdf") as mock_parse, \
+         patch("src.services.ingestion_service.extract_text") as mock_parse, \
          patch("src.services.ingestion_service.split_text") as mock_chunk, \
          patch("src.services.ingestion_service.generate_embeddings") as mock_embed, \
          patch("src.services.ingestion_service.insert_document_chunks", new_callable=AsyncMock) as mock_insert, \
@@ -88,7 +88,7 @@ async def test_service_process_next_success():
         mock_get_job.assert_called_once_with("job-uuid-1")
         mock_claim_job.assert_called_once_with("job-uuid-1")
         mock_download.assert_called_once_with("leadgen-docs", "proposal.pdf")
-        mock_parse.assert_called_once_with(b"%PDF-1.4 mock content")
+        mock_parse.assert_called_once_with(b"%PDF-1.4 mock content", "proposal.pdf")
         mock_chunk.assert_called_once_with("This is document content.")
         mock_embed.assert_called_once_with(["This is document content."])
         mock_insert.assert_called_once_with("doc-uuid-1", [(0, "This is document content.", [0.1] * 1536)])
@@ -104,7 +104,7 @@ async def test_service_process_next_invalid_file_type():
         "job_id": "job-uuid-2",
         "document_id": "doc-uuid-2",
         "source_bucket": "leadgen-docs",
-        "source_object_key": "not_a_pdf.txt",
+        "source_object_key": "not_a_pdf.png",
         "status": "pending",
     }
 
@@ -122,7 +122,7 @@ async def test_service_process_next_invalid_file_type():
         with pytest.raises(ValueError) as exc:
             await process_next_job()
 
-        assert "Only PDF files are supported" in str(exc.value)
+        assert "Unsupported file type" in str(exc.value)
         mock_update.assert_called_once_with(
-            "job-uuid-2", "failed", "Only PDF files are supported in this MVP version."
+            "job-uuid-2", "failed", "Unsupported file type. Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX."
         )

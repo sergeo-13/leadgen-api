@@ -733,10 +733,10 @@ _UI_HTML = r"""<!DOCTYPE html>
           
           <div class="g2">
             
-            <!-- File field (Create/Replace Mode Only) -->
             <div class="field full" id="f-file-container">
-              <label for="f-file">PDF Source File *</label>
-              <input type="file" id="f-file" accept=".pdf" />
+              <label for="f-file">Source File *</label>
+              <input type="file" id="f-file" accept=".pdf,.txt,.md,.markdown,.csv,.docx,.xlsx" />
+              <small style="color: var(--muted); font-size: 0.72rem; margin-top: 0.15rem; display: block;">Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX</small>
             </div>
 
             <div class="field full">
@@ -819,13 +819,14 @@ _UI_HTML = r"""<!DOCTYPE html>
           <div class="modal-section-title">♻ Replace Source File</div>
           <div class="warning-banner" style="margin-bottom:0.8rem;">
             <div>
-              Replacing the source file will upload a versioned PDF (preventing overwrite of the previous version) and trigger a <strong>Rebuild Search Index</strong>.
+              Replacing the source file will upload a versioned file (preventing overwrite of the previous version) and trigger a <strong>Rebuild Search Index</strong>.
             </div>
           </div>
           <div style="display:flex; gap:0.5rem; align-items:flex-end;">
             <div class="field" style="flex:1;">
-              <label for="replace-file-input">Select New PDF File</label>
-              <input type="file" id="replace-file-input" accept=".pdf" />
+              <label for="replace-file-input">Select New Source File</label>
+              <input type="file" id="replace-file-input" accept=".pdf,.txt,.md,.markdown,.csv,.docx,.xlsx" />
+              <small style="color: var(--muted); font-size: 0.72rem; margin-top: 0.15rem; display: block;">Supported formats: PDF, TXT, Markdown, CSV, DOCX, XLSX</small>
             </div>
             <button class="btn btn-warning" id="btnReplaceFile" onclick="triggerReplaceFile()">
               <span class="spin" id="replace-spin"></span>
@@ -1073,7 +1074,7 @@ _UI_HTML = r"""<!DOCTYPE html>
         const titleEl = document.getElementById('f-title');
 
         if (!fileEl.files.length) {
-          showAlert(false, 'Please select a PDF file.');
+          showAlert(false, 'Please select a source file.');
           return;
         }
         if (!titleEl.value.trim()) {
@@ -1241,7 +1242,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       if (!currentDocId) return;
       const fileEl = document.getElementById('replace-file-input');
       if (!fileEl.files.length) {
-        alert("Please select a PDF file first.");
+        alert("Please select a source file first.");
         return;
       }
 
