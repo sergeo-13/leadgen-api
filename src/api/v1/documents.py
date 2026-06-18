@@ -33,7 +33,6 @@ from src.services.database import (
     get_jobs_by_document_id,
     archive_document,
     restore_document,
-    update_document_status,
 )
 from src.services.embedding_service import generate_embeddings
 from src.services.document_parser import SUPPORTED_EXTENSIONS, SUPPORTED_FORMATS_ERROR
@@ -179,7 +178,7 @@ async def upload_document(
     # 5. Read file bytes
     try:
         file_bytes = await file.read()
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to read uploaded file.",
@@ -568,7 +567,7 @@ async def replace_document_file(
         )
         if not success:
             raise Exception("Database update returned unsuccessful status.")
-    except Exception as e:
+    except Exception:
         logger.error(
             f"CRITICAL: Replace file DB update failed for document {document_id}. "
             f"Uploaded orphan MinIO object_key: '{new_object_key}'"
