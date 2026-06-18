@@ -582,6 +582,11 @@ async def replace_document_file(
     try:
         # Get refreshed document details
         doc = await get_document_by_id(document_id)
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document '{document_id}' not found after replace."
+            )
         tags_list = doc["tags"]
         authors_list = doc["authors"]
         metadata_obj = DocumentMetadata(
@@ -682,6 +687,11 @@ async def restore_doc(document_id: str):
             )
         # Fetch updated status to return
         updated_doc = await get_document_by_id(document_id)
+        if not updated_doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document '{document_id}' not found after restore."
+            )
         return {
             "status": "success",
             "message": f"Document '{document_id}' restored successfully.",

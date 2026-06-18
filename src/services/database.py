@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
 
 import asyncpg
 
@@ -257,7 +257,7 @@ async def claim_job(job_id: str) -> None:
         await conn.close()
 
 
-async def update_job_status(job_id: str, status: str, error: str = None) -> None:
+async def update_job_status(job_id: str, status: str, error: Optional[str] = None) -> None:
     """
     Update the status and optional error message of an ingestion job.
 
@@ -400,7 +400,7 @@ async def search_document_chunks(
         JOIN documents d ON d.id = c.document_id
     """
 
-    params = [vector_str]
+    params: List[Any] = [vector_str]
     where_clauses = ["c.embedding IS NOT NULL", "d.status = 'processed'"]
     param_idx = 2
 
@@ -631,7 +631,7 @@ async def list_ingestion_jobs(
         FROM ingestion_jobs
     """
     where_clauses = []
-    params = []
+    params: List[Any] = []
     param_idx = 1
 
     if status:
