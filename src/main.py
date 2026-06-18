@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.v1 import documents, health, ingestion
+from src.api.v1 import documents, health, hermes, ingestion
 from src.api import ui
 from src.config import settings
 
@@ -27,6 +27,7 @@ app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(health.router, tags=["health"])  # Expose /health at root
 app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
 app.include_router(ingestion.router, prefix="/api/v1", tags=["ingestion"])
+app.include_router(hermes.router, prefix="/api/v1", tags=["hermes"])
 app.include_router(ui.router, tags=["ui"])
 
 

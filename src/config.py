@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     MAX_CSV_ROWS: int = int(os.getenv("MAX_CSV_ROWS", "5000"))
     MAX_XLSX_ROWS_PER_SHEET: int = int(os.getenv("MAX_XLSX_ROWS_PER_SHEET", "5000"))
 
+    # Hermes
+    HERMES_API_BASE_URL: str = os.getenv("HERMES_API_BASE_URL", "http://hermes-gateway:8642")
+    HERMES_API_KEY: str = os.getenv("HERMES_API_KEY", "")
+    HERMES_DEFAULT_MODEL: str = os.getenv("HERMES_DEFAULT_MODEL", "hermes-agent")
+    HERMES_TIMEOUT_SECONDS: int = int(os.getenv("HERMES_TIMEOUT_SECONDS", "120"))
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,
