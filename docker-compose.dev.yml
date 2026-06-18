@@ -8,10 +8,10 @@ services:
     ports:
       - "3001:8000"
     environment:
-      POSTGRES_HOST: leadgen-postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: leadgen
-      POSTGRES_USER: leadgen
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
