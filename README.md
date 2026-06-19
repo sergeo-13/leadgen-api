@@ -263,6 +263,11 @@ All configuration is managed through environment variables. See `.env.example` f
 - `OPENAI_API_KEY` - OpenAI Secret API Key (needed for embedding generation)
 - `EMBEDDING_MODEL` - Embedding model to use (defaults to `text-embedding-3-small`)
 
+### Hermes
+- `HERMES_WEBUI_URL` - The public HTTPS URL of the deployed Hermes WebUI used by the Assistant tab. It is not an API endpoint and must not contain credentials.
+
+*Note: Hermes WebUI authentication and provider credentials must be configured within the Hermes deployment itself, not inside leadgen-api.*
+
 ## Development
 
 ### Running Tests

@@ -2,6 +2,8 @@
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+import json
+from src.config import settings
 
 router = APIRouter()
 
@@ -797,27 +799,34 @@ _UI_HTML = r"""<!DOCTYPE html>
     <!-- Assistant content -->
     <div id="assistant-tab-content" class="tab-content">
       <div class="card span-all" style="padding: 1.8rem 2rem; position: relative;">
-        <div class="card-heading" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <span>🤖 Assistant Console</span>
-          <a href="https://hermes-webui-m4vx.srv1717261.hstgr.cloud/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs">
-            Open Assistant in a new tab ↗
-          </a>
-        </div>
-
-        <div style="position: relative; width: 100%; height: calc(100vh - 250px); min-height: 700px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface2); border: 1px solid var(--border);">
-          <!-- Loading placeholder overlay -->
-          <div id="assistant-loading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; z-index: 10; transition: opacity 0.25s ease;">
-            <div class="spin" style="display: block; width: 24px; height: 24px;"></div>
-            <span style="color: var(--muted); font-size: 0.95rem;">Loading Assistant...</span>
+        <!-- Configured state container -->
+        <div id="assistant-configured" style="display: none;">
+          <div class="card-heading" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <span>🤖 Assistant Console</span>
+            <a id="hermesNewTabLink" href="" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs">
+              Open Assistant in a new tab ↗
+            </a>
           </div>
 
-          <iframe
-            id="hermesAssistantFrame"
-            src="https://hermes-webui-m4vx.srv1717261.hstgr.cloud/"
-            title="Leadgen Assistant"
-            allow="clipboard-read; clipboard-write; microphone"
-            style="width: 100%; height: 100%; border: 0;"
-          ></iframe>
+          <div style="position: relative; width: 100%; height: calc(100vh - 250px); min-height: 700px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface2); border: 1px solid var(--border);">
+            <!-- Loading placeholder overlay -->
+            <div id="assistant-loading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; z-index: 10; transition: opacity 0.25s ease;">
+              <div class="spin" style="display: block; width: 24px; height: 24px;"></div>
+              <span style="color: var(--muted); font-size: 0.95rem;">Loading Assistant...</span>
+            </div>
+
+            <iframe
+              id="hermesAssistantFrame"
+              title="Leadgen Assistant"
+              allow="clipboard-read; clipboard-write; microphone"
+              style="width: 100%; height: 100%; border: 0;"
+            ></iframe>
+          </div>
+        </div>
+
+        <!-- Unconfigured state container -->
+        <div id="assistant-unconfigured" style="display: none; padding: 3rem; text-align: center; color: var(--muted); font-size: 0.95rem;">
+          Assistant is not configured.
         </div>
       </div>
     </div><!-- /assistant-tab-content -->
@@ -1684,21 +1693,36 @@ _UI_HTML = r"""<!DOCTYPE html>
       }
     }
 
+    const hermesWebuiUrl = {hermes_webui_url_json};
+
     // ── Init ──
     document.addEventListener('DOMContentLoaded', () => {
       loadDocuments();
 
+      const configuredContainer = document.getElementById('assistant-configured');
+      const unconfiguredContainer = document.getElementById('assistant-unconfigured');
       const iframe = document.getElementById('hermesAssistantFrame');
-      if (iframe) {
-        iframe.addEventListener('load', () => {
-          const loadingOverlay = document.getElementById('assistant-loading');
-          if (loadingOverlay) {
-            loadingOverlay.style.opacity = '0';
-            setTimeout(() => {
-              loadingOverlay.style.display = 'none';
-            }, 250);
-          }
-        });
+      const newTabLink = document.getElementById('hermesNewTabLink');
+
+      if (hermesWebuiUrl && hermesWebuiUrl.trim() !== "") {
+        if (configuredContainer) configuredContainer.style.display = 'block';
+        if (unconfiguredContainer) unconfiguredContainer.style.display = 'none';
+        if (iframe) {
+          iframe.src = hermesWebuiUrl;
+          iframe.addEventListener('load', () => {
+            const loadingOverlay = document.getElementById('assistant-loading');
+            if (loadingOverlay) {
+              loadingOverlay.style.opacity = '0';
+              setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+              }, 250);
+            }
+          });
+        }
+        if (newTabLink) newTabLink.href = hermesWebuiUrl;
+      } else {
+        if (configuredContainer) configuredContainer.style.display = 'none';
+        if (unconfiguredContainer) unconfiguredContainer.style.display = 'block';
       }
     });
   </script>
@@ -1709,4 +1733,6 @@ _UI_HTML = r"""<!DOCTYPE html>
 @router.get("/ui", response_class=HTMLResponse, include_in_schema=False)
 async def admin_ui():
     """Internal admin UI — document management dashboard."""
-    return HTMLResponse(content=_UI_HTML, status_code=200)
+    escaped_url_json = json.dumps(settings.HERMES_WEBUI_URL)
+    html_content = _UI_HTML.replace("{hermes_webui_url_json}", escaped_url_json)
+    return HTMLResponse(content=html_content, status_code=200)

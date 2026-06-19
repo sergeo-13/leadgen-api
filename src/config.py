@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     HERMES_API_KEY: str = os.getenv("HERMES_API_KEY", "")
     HERMES_DEFAULT_MODEL: str = os.getenv("HERMES_DEFAULT_MODEL", "hermes-agent")
     HERMES_TIMEOUT_SECONDS: int = int(os.getenv("HERMES_TIMEOUT_SECONDS", "120"))
+    HERMES_WEBUI_URL: str = os.getenv("HERMES_WEBUI_URL", "")
 
     model_config = SettingsConfigDict(
         env_file=".env",
