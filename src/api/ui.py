@@ -652,6 +652,49 @@ _UI_HTML = r"""<!DOCTYPE html>
       gap: 0.75rem;
     }
 
+    /* ── Top Tabs Navigation ── */
+    .tabs-container {
+      max-width: 1200px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      font-family: inherit;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      background: var(--surface2);
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: var(--accent);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .tab-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: contents;
+    }
+
   </style>
 </head>
 <body>
@@ -669,74 +712,115 @@ _UI_HTML = r"""<!DOCTYPE html>
     </div>
   </header>
 
+  <div class="tabs-container">
+    <button type="button" id="tab-btn-kb" class="tab-btn active" aria-selected="true" aria-controls="kb-tab-content" onclick="switchTab('kb')">
+      Knowledge Base
+    </button>
+    <button type="button" id="tab-btn-assistant" class="tab-btn" aria-selected="false" aria-controls="assistant-tab-content" onclick="switchTab('assistant')">
+      Assistant
+    </button>
+  </div>
+
   <div class="wrap">
 
-    <!-- ════ DOCUMENTS DIRECTORY ════ -->
-    <div class="card span-all">
-      <div class="card-heading">
-        <span>📂 Documents Directory</span>
-        <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">↻ Refresh</button>
-      </div>
-      
-      <!-- Inline error banner for document loading failures -->
-      <div id="directory-error-banner" style="display: none; margin: 1rem 1.8rem 0; padding: 0.8rem 1.2rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; color: var(--danger); font-size: 0.88rem; align-items: center; justify-content: space-between;">
-        <span style="font-weight: 500;">Failed to load documents directory.</span>
-        <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">Retry</button>
-      </div>
+    <div id="kb-tab-content" class="tab-content active">
 
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Title / File</th>
-              <th>Status</th>
-              <th>Chunks</th>
-              <th>Tags / Authors</th>
-              <th>Created At</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="documentsTableBody">
-            <!-- Loaded dynamically -->
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <!-- ════ DOCUMENTS DIRECTORY ════ -->
+      <div class="card span-all">
+        <div class="card-heading">
+          <span>📂 Documents Directory</span>
+          <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">↻ Refresh</button>
+        </div>
+        
+        <!-- Inline error banner for document loading failures -->
+        <div id="directory-error-banner" style="display: none; margin: 1rem 1.8rem 0; padding: 0.8rem 1.2rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; color: var(--danger); font-size: 0.88rem; align-items: center; justify-content: space-between;">
+          <span style="font-weight: 500;">Failed to load documents directory.</span>
+          <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">Retry</button>
+        </div>
 
-    <!-- ════ SEMANTIC SEARCH ════ -->
-    <div class="card span-all">
-      <div class="card-heading">🔍 Semantic Search</div>
-      
-      <!-- Search Exclusion Notice -->
-      <div class="warning-banner">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-        </svg>
-        <div>
-          <strong>Index Availability Rule:</strong> Semantic search uses only <strong>processed</strong> documents. Uploaded, processing, failed and archived documents are excluded from search results.
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Title / File</th>
+                <th>Status</th>
+                <th>Chunks</th>
+                <th>Tags / Authors</th>
+                <th>Created At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="documentsTableBody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <form id="searchForm" novalidate>
-        <div class="g2">
-          <div class="field full">
-            <label for="s-query">Query *</label>
-            <div class="search-input-group">
-              <input type="text" id="s-query" placeholder="Ask a question about the uploaded knowledge base documents..." required />
-              <button type="submit" class="btn" id="s-btn" style="margin-top:0;">
-                <span class="spin" id="s-spin"></span>
-                <span id="s-btn-txt">Search</span>
-              </button>
+      <!-- ════ SEMANTIC SEARCH ════ -->
+      <div class="card span-all">
+        <div class="card-heading">🔍 Semantic Search</div>
+        
+        <!-- Search Exclusion Notice -->
+        <div class="warning-banner">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <div>
+            <strong>Index Availability Rule:</strong> Semantic search uses only <strong>processed</strong> documents. Uploaded, processing, failed and archived documents are excluded from search results.
+          </div>
+        </div>
+
+        <form id="searchForm" novalidate>
+          <div class="g2">
+            <div class="field full">
+              <label for="s-query">Query *</label>
+              <div class="search-input-group">
+                <input type="text" id="s-query" placeholder="Ask a question about the uploaded knowledge base documents..." required />
+                <button type="submit" class="btn" id="s-btn" style="margin-top:0;">
+                  <span class="spin" id="s-spin"></span>
+                  <span id="s-btn-txt">Search</span>
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="s-limit">Max Chunk Results</label>
+              <input type="number" id="s-limit" value="5" min="1" max="100" />
             </div>
           </div>
-          <div class="field">
-            <label for="s-limit">Max Chunk Results</label>
-            <input type="number" id="s-limit" value="5" min="1" max="100" />
-          </div>
+        </form>
+        <div class="chunks" id="s-results"></div>
+      </div>
+
+    </div><!-- /kb-tab-content -->
+
+    <!-- Assistant content -->
+    <div id="assistant-tab-content" class="tab-content">
+      <div class="card span-all" style="padding: 1.8rem 2rem; position: relative;">
+        <div class="card-heading" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>🤖 Assistant Console</span>
+          <a href="https://hermes-webui-m4vx.srv1717261.hstgr.cloud/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs">
+            Open Assistant in a new tab ↗
+          </a>
         </div>
-      </form>
-      <div class="chunks" id="s-results"></div>
-    </div>
+
+        <div style="position: relative; width: 100%; height: calc(100vh - 250px); min-height: 700px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface2); border: 1px solid var(--border);">
+          <!-- Loading placeholder overlay -->
+          <div id="assistant-loading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; z-index: 10; transition: opacity 0.25s ease;">
+            <div class="spin" style="display: block; width: 24px; height: 24px;"></div>
+            <span style="color: var(--muted); font-size: 0.95rem;">Loading Assistant...</span>
+          </div>
+
+          <iframe
+            id="hermesAssistantFrame"
+            src="https://hermes-webui-m4vx.srv1717261.hstgr.cloud/"
+            title="Leadgen Assistant"
+            allow="clipboard-read; clipboard-write; microphone"
+            style="width: 100%; height: 100%; border: 0;"
+          ></iframe>
+        </div>
+      </div>
+    </div><!-- /assistant-tab-content -->
 
   </div><!-- /wrap -->
 
@@ -1577,9 +1661,45 @@ _UI_HTML = r"""<!DOCTYPE html>
       }
     });
 
+    function switchTab(tab) {
+      const kbTab = document.getElementById('kb-tab-content');
+      const assistantTab = document.getElementById('assistant-tab-content');
+      const btnKb = document.getElementById('tab-btn-kb');
+      const btnAssistant = document.getElementById('tab-btn-assistant');
+
+      if (tab === 'kb') {
+        kbTab.classList.add('active');
+        assistantTab.classList.remove('active');
+        btnKb.classList.add('active');
+        btnKb.setAttribute('aria-selected', 'true');
+        btnAssistant.classList.remove('active');
+        btnAssistant.setAttribute('aria-selected', 'false');
+      } else if (tab === 'assistant') {
+        kbTab.classList.remove('active');
+        assistantTab.classList.add('active');
+        btnKb.classList.remove('active');
+        btnKb.setAttribute('aria-selected', 'false');
+        btnAssistant.classList.add('active');
+        btnAssistant.setAttribute('aria-selected', 'true');
+      }
+    }
+
     // ── Init ──
     document.addEventListener('DOMContentLoaded', () => {
       loadDocuments();
+
+      const iframe = document.getElementById('hermesAssistantFrame');
+      if (iframe) {
+        iframe.addEventListener('load', () => {
+          const loadingOverlay = document.getElementById('assistant-loading');
+          if (loadingOverlay) {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+              loadingOverlay.style.display = 'none';
+            }, 250);
+          }
+        });
+      }
     });
   </script>
 </body>
