@@ -258,15 +258,44 @@ All configuration is managed through environment variables. See `.env.example` f
 - `MINIO_SECRET_KEY` - MinIO secret key
 - `MINIO_BUCKET` - Default bucket name
 - `MINIO_SECURE` - Use HTTPS for MinIO
-
 ### OpenAI
 - `OPENAI_API_KEY` - OpenAI Secret API Key (needed for embedding generation)
 - `EMBEDDING_MODEL` - Embedding model to use (defaults to `text-embedding-3-small`)
-
 ### Hermes
 - `HERMES_WEBUI_URL` - The public HTTPS URL of the deployed Hermes WebUI used by the Assistant tab. It is not an API endpoint and must not contain credentials.
 
 *Note: Hermes WebUI authentication and provider credentials must be configured within the Hermes deployment itself, not inside leadgen-api.*
+
+## Model Context Protocol (MCP) Integration
+
+The Leadgen API exposes its Knowledge Base semantic search as a Model Context Protocol (MCP) tool named `search_knowledge_base`.
+
+### Architecture
+- **Protocol**: Streamable HTTP (stateless, JSON responses).
+- **Canonical Endpoint**: `/mcp/` (e.g., `http://localhost:8000/mcp/`).
+- **Security**: Isolated Bearer authentication and built-in DNS rebinding protection.
+- **Service Reuse**: Thin adapter that invokes the standard database search service, avoiding duplicate SQL queries or embedding logic.
+
+### Configuration
+Configure the following environment variables in your `.env` or deployment manager:
+- `MCP_ENABLED` (default: `true`) - Toggles the MCP ASGI app mount and session manager lifespan block.
+- `MCP_API_KEY` - Optional Bearer token to protect the MCP subtree. If empty, authentication is bypassed.
+- `MCP_ALLOWED_HOSTS` - Comma-separated list of Host header patterns trusted by the DNS rebinding protection (e.g., `localhost:*,127.0.0.1:*,leadgen-api:8000`).
+- `MCP_ALLOWED_ORIGINS` - Comma-separated list of trusted Origin headers.
+
+### Discovery & Hermes Client Config
+To connect Hermes or any other client agent to the Leadgen API's MCP server, use:
+
+```yaml
+mcp_servers:
+  knowledge-base:
+    url: "http://leadgen-api:8000/mcp/"
+    headers:
+      Authorization: "Bearer <your_mcp_api_key>"
+    enabled: true
+    timeout: 30
+    connect_timeout: 10
+```
 
 ## Development
 

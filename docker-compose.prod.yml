@@ -20,6 +20,11 @@ services:
       MINIO_SECURE: "false"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      HERMES_WEBUI_URL: ${HERMES_WEBUI_URL}
+      MCP_ENABLED: ${MCP_ENABLED}
+      MCP_API_KEY: ${MCP_API_KEY}
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS}
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS}
     networks:
       - leadgen_net
 

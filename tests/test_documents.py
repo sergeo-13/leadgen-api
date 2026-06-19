@@ -106,8 +106,8 @@ def test_search_documents_success(client):
         }
     ]
 
-    with patch("src.api.v1.documents.generate_embeddings") as mock_embed, \
-         patch("src.api.v1.documents.search_document_chunks", new_callable=AsyncMock) as mock_db:
+    with patch("src.services.search_service.generate_embeddings") as mock_embed, \
+         patch("src.services.search_service.search_document_chunks", new_callable=AsyncMock) as mock_db:
 
         mock_embed.return_value = [[0.1] * 1536]
         mock_db.return_value = mock_db_result
@@ -153,8 +153,8 @@ def test_search_documents_filters_null(client):
         }
     ]
 
-    with patch("src.api.v1.documents.generate_embeddings") as mock_embed, \
-         patch("src.api.v1.documents.search_document_chunks", new_callable=AsyncMock) as mock_db:
+    with patch("src.services.search_service.generate_embeddings") as mock_embed, \
+         patch("src.services.search_service.search_document_chunks", new_callable=AsyncMock) as mock_db:
 
         mock_embed.return_value = [[0.1] * 1536]
         mock_db.return_value = mock_db_result
@@ -195,7 +195,7 @@ def test_search_documents_exception(client):
     payload = {
         "query": "some search query"
     }
-    with patch("src.api.v1.documents.generate_embeddings") as mock_embed:
+    with patch("src.services.search_service.generate_embeddings") as mock_embed:
         mock_embed.side_effect = Exception("OpenAI API limit exceeded")
         response = client.post("/api/v1/documents/search", json=payload)
         assert response.status_code == 500

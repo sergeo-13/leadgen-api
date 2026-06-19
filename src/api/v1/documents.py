@@ -17,7 +17,6 @@ from src.models.schemas import (
     DocumentMetadata,
     DocumentSearchRequest,
     DocumentSearchResponse,
-    DocumentSearchResult,
     DocumentResponse,
     JobResponse,
     DocumentUploadResponse,
@@ -25,7 +24,6 @@ from src.models.schemas import (
 )
 from src.services.database import (
     create_ingestion_job,
-    search_document_chunks,
     list_documents,
     get_document_by_id,
     update_document_metadata,
@@ -34,7 +32,7 @@ from src.services.database import (
     archive_document,
     restore_document,
 )
-from src.services.embedding_service import generate_embeddings
+from src.services.search_service import perform_semantic_search
 from src.services.document_parser import SUPPORTED_EXTENSIONS, SUPPORTED_FORMATS_ERROR
 from src.services.ingestion_service import process_job
 from src.services.minio_service import check_object_exists, upload_object
@@ -313,25 +311,17 @@ async def search_documents(payload: DocumentSearchRequest):
         )
 
     try:
-        embeddings = generate_embeddings([payload.query])
-        if not embeddings:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to generate embedding for search query.",
-            )
-        query_embedding = embeddings[0]
-
-        results_data = await search_document_chunks(
-            query_embedding=query_embedding,
+        results = await perform_semantic_search(
+            query=payload.query,
             limit=payload.limit,
             filters=payload.filters,
-            query_text=payload.query,
         )
-
-        results = [DocumentSearchResult(**item) for item in results_data]
         return DocumentSearchResponse(query=payload.query, results=results)
-    except HTTPException:
-        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

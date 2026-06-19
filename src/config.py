@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     HERMES_TIMEOUT_SECONDS: int = int(os.getenv("HERMES_TIMEOUT_SECONDS", "120"))
     HERMES_WEBUI_URL: str = os.getenv("HERMES_WEBUI_URL", "")
 
+    # MCP
+    MCP_ENABLED: bool = os.getenv("MCP_ENABLED", "true").lower() == "true"
+    MCP_API_KEY: str = os.getenv("MCP_API_KEY", "")
+    MCP_ALLOWED_HOSTS: str = os.getenv("MCP_ALLOWED_HOSTS", "localhost:8000,127.0.0.1:8000,leadgen-api:8000,leadgen-api-dev:8000,localhost:*,127.0.0.1:*")
+    MCP_ALLOWED_ORIGINS: str = os.getenv("MCP_ALLOWED_ORIGINS", "")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

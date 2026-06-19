@@ -1,12 +1,18 @@
 version: '3.8'
-
 services:
   leadgen-api-dev:
     image: ghcr.io/sergeo-13/leadgen-api:dev
-    container_name: leadgen-api-dev
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=8000"
+
     ports:
       - "3001:8000"
+
     environment:
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
@@ -20,6 +26,11 @@ services:
       MINIO_SECURE: "false"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      HERMES_WEBUI_URL: https://hermes-webui-m4vx.srv1717261.hstgr.cloud/
+      MCP_ENABLED: ${MCP_ENABLED}
+      MCP_API_KEY: ${MCP_API_KEY}
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS}
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS}
     networks:
       - leadgen_net
 
