@@ -2,6 +2,8 @@
 
 This guide details how to configure, update, and manage the PostgreSQL database containing `pgvector` extension for your Leadgen API deployment.
 
+---
+
 ## Connecting to PostgreSQL on VPS
 
 The database runs in a Docker container named `leadgen-postgres`. To connect directly to the container and open the `psql` interactive terminal, execute:
@@ -75,7 +77,7 @@ After executing `schema.sql`, connect to the database and verify:
    - `document_chunks`
 
 2. **Verify table structure:**
-   Check the columns of `documents` to confirm the new generic fields are present:
+   Check the columns of `documents` to confirm the fields are present:
    ```sql
    \d documents
    ```

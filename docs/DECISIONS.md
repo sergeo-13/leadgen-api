@@ -1,107 +1,80 @@
-# Decisions
+# Architectural Decisions Log (ADR)
 
-## ADR-001
-
-Decision:
-Use OpenClaw as orchestration layer only.
-
-Reason:
-Keeps business logic separated from storage and ingestion.
+This document records the architectural decisions made during the design and development of the Leadgen API.
 
 ---
 
-## ADR-002
+## ADR-001: Orchestration Layer Choice
 
-Decision:
-Store original files in MinIO.
-
-Reason:
-Cheap, scalable, S3-compatible storage.
-
----
-
-## ADR-003
-
-Decision:
-Store embeddings in PostgreSQL + pgvector.
-
-Reason:
-Simple deployment and sufficient for MVP.
+* **Status**: **Superseded** (Historical Reference)
+* **Decision**: Use OpenClaw as the orchestration layer only.
+* **Reason**: Keep core business logic separate from storage and ingestion services.
+* **Hermes Update**: During development, OpenClaw was replaced by the external **Hermes Gateway** and **Hermes WebUI** stack. The principal architecture of separating agent orchestration from database and ingestion logic remains active, with the Hermes stack communicating with the FastAPI service via Model Context Protocol (MCP) tool calls.
 
 ---
 
-## ADR-004
+## ADR-002: Storage Layer for Raw Source Documents
 
-Decision:
-Use OpenAI embeddings.
-
-Model:
-text-embedding-3-small
-
-Reason:
-Good quality/cost ratio.
+* **Status**: **Active**
+* **Decision**: Store original uploaded files in MinIO.
+* **Reason**: Provides cheap, scalable, S3-compatible object storage.
 
 ---
 
-## ADR-005
+## ADR-003: Vector Database Selection
 
-Decision:
-Initial document volume limited to approximately 20 files.
-
-Reason:
-Fast MVP validation.
+* **Status**: **Active**
+* **Decision**: Store document chunks and embeddings in PostgreSQL using the `pgvector` extension.
+* **Reason**: Minimizes operational footprint by using the same database for structured document metadata, ingestion logs, and vector search. Sufficient for the target volume.
 
 ---
 
-## ADR-006
+## ADR-004: Text Embedding Model
 
-Decision:
-Leadgen API acts as the only storage access layer.
-
-Reason:
-Prevents OpenClaw from becoming tightly coupled to storage implementation.
+* **Status**: **Active**
+* **Decision**: Use OpenAI's `text-embedding-3-small` model.
+* **Reason**: Offers a high quality-to-cost ratio and generates 1536-dimensional embeddings.
 
 ---
 
-## ADR-007
+## ADR-005: Dataset Sizing Assumptions
 
-Decision:
-Single shared Docker network.
-
-Network:
-leadgen_net
-
-Reason:
-Simple service discovery by container name.
+* **Status**: **Historical / Active**
+* **Decision**: Scope initial target capacity for approximately 20-100 high-value documents.
+* **Reason**: Allows fast validation of retrieval accuracy and agent response grounding before scaling the system.
 
 ---
 
-## ADR-008
+## ADR-006: Data Layer Isolation
 
-Decision:
-Implement health checks before ingestion logic.
-
-Reason:
-Infrastructure must be verified before feature development.
+* **Status**: **Active**
+* **Decision**: leadgen-api acts as the sole access layer for document storage and search.
+* **Reason**: Prevents external orchestration and agent engines (historically OpenClaw, currently the Hermes Gateway) from directly accessing PostgreSQL or MinIO, decoupling database schemas and storage layout from the agent runtime.
 
 ---
 
-## ADR-009
+## ADR-007: Networking and Service Discovery
 
-Decision:
-Do not use IVFFlat pgvector index for MVP.
+* **Status**: **Active**
+* **Decision**: Connect containers via a single external Docker network (`leadgen_net`).
+* **Reason**: Enables clean service discovery by container name (e.g. `leadgen-postgres`, `minio`, `leadgen-api`) on the Hostinger VPS host without exposing internal ports externally.
 
-Reason:
-The project currently has a small number of document chunks. Creating an IVFFlat index too early, especially with lists=100 on a tiny dataset, caused semantic search to return empty results despite valid embeddings. For MVP, exact vector search is fast enough and more reliable.
+---
 
-Current state:
-document_chunks_embedding_idx was dropped.
+## ADR-008: Inception and Health Check Priority
 
-SQL:
-```sql
-DROP INDEX IF EXISTS document_chunks_embedding_idx;
-```
+* **Status**: **Active**
+* **Decision**: Implement comprehensive dependency checks in the health check endpoint before developing the ingestion flow.
+* **Reason**: Ensures the database and storage services are reachable, avoiding ingestion bugs caused by silent database disconnection.
 
-Future:
-Reintroduce vector index only when the dataset grows significantly, and tune lists/probes based on actual chunk count.
+---
 
+## ADR-009: Vector Index Tuning for MVP
+
+* **Status**: **Active**
+* **Decision**: Do not create a pgvector index (like IVFFlat or HNSW) on the embeddings database table for the current dataset volume.
+* **Reason**: Creating an index on a table with a small number of records can degrade recall and cause queries to return empty result sets. For dataset sizes below 10,000 chunks, exact nearest-neighbor vector search (using pgvector operator orderings) is fast, reliable, and has 100% recall.
+* **Action**:
+  ```sql
+  DROP INDEX IF EXISTS document_chunks_embedding_idx;
+  ```

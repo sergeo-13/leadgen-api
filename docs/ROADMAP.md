@@ -1,3 +1,10 @@
+# ROADMAP (Historical Context / Reference Only)
+
+> [!NOTE]
+> This document lists the initial roadmap phases mapped out during the initial design of the project. It is preserved here for historical reference only. For the current active capabilities, please see the [README.md](../README.md).
+
+---
+
 # Roadmap
 
 ## Phase 1 — Infrastructure

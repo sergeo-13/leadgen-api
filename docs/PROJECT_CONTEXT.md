@@ -1,3 +1,10 @@
+# PROJECT_CONTEXT (Historical Context / Reference Only)
+
+> [!NOTE]
+> This document details the initial MVP scope and project context from the beginning of the project. It is preserved here for historical reference only. For the current architecture, features, and endpoints, please refer to the main [README.md](../README.md) and [docs/ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
 # Leadgen API — Project Context
 
 ## Goal
