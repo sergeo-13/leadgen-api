@@ -5,34 +5,73 @@ This document describes the component relationships, data flow, scoring semantic
 ---
 
 ## High-Level Component Layout
-The application forms the storage and semantic retrieval layer of the agent platform. It communicates via the internal Docker network `leadgen_net` with external infrastructure.
+The application forms the storage and semantic retrieval layer of the agent platform. It communicates via the internal Docker network `leadgen_net` with external databases, storage, and runtime stacks.
 
 ```mermaid
 graph TD
-    User([User / Client])
-    WebUI[Hermes WebUI]
-    Gateway[Hermes Gateway]
-    API[leadgen-api]
-    DB[(PostgreSQL + pgvector)]
-    Storage[(MinIO Object Storage)]
-
-    User -->|Access WebUI / Chat| WebUI
-    User -->|Access Admin Panel| API
-    WebUI -->|Orchestrate Agent Runs| Gateway
-    Gateway -->|MCP search_knowledge_base| API
-    API -->|Read/Write Vectors & Metadata| DB
-    API -->|Store / Fetch Source Files| Storage
-
-    subgraph "leadgen-api Responsibility"
-        API
+    %% Define actor
+    User([User])
+    
+    %% Primary User Interface
+    subgraph UI ["User Interface (leadgen-api & iframe)"]
+        LeadgenUI["Leadgen UI / Admin Panel<br/>(Served by leadgen-api)"]
+        Iframe["Assistant Tab<br/>(Iframe)"]
+        LeadgenUI -.->|Embeds| Iframe
     end
 
-    subgraph "External Infrastructure & Agent Runtime"
-        WebUI
-        Gateway
-        DB
-        Storage
+    %% leadgen-api Responsibility Block
+    subgraph API ["leadgen-api Service"]
+        REST["Admin UI & REST API"]
+        MCP["MCP Endpoint /mcp/ &<br/>search_knowledge_base tool"]
+        Ingestion["Ingestion Orchestration<br/>(Parsing & Chunking)"]
+        Search["Semantic Search Service"]
+        DocsMgmt["Document & Processing Job Management"]
+        
+        REST ---> Ingestion
+        REST ---> DocsMgmt
+        MCP ---> Search
     end
+
+    %% Agent Runtime
+    subgraph Agent ["Agent Runtime (External)"]
+        WebUI["Hermes WebUI"]
+        Gateway["Hermes Gateway<br/>(Agent Loop)"]
+        WebUI <-->|WebSocket/HTTP| Gateway
+    end
+
+    %% Data Infrastructure
+    subgraph Data ["Data Infrastructure (External)"]
+        Postgres[("PostgreSQL + pgvector<br/>(Metadata, Chunks, Embeddings, Jobs)")]
+        Minio[("MinIO Object Storage<br/>(Raw Source Files)")]
+    end
+
+    %% External AI Service
+    subgraph AI ["External AI Service (External)"]
+        OpenAI["OpenAI Embeddings API<br/>(text-embedding-3-small)"]
+    end
+
+    %% Request flows
+    User --->|1. Ingestion Entrypoint| LeadgenUI
+    User --->|2. Assistant Search Entrypoint| Iframe
+    
+    %% Document Ingestion Flow
+    LeadgenUI --->|Upload File / Trigger Rebuild| REST
+    Ingestion --->|Store Source Files| Minio
+    Ingestion --->|Write Metadata, Chunks & Job Logs| Postgres
+    Ingestion --->|Request Embeddings| OpenAI
+
+    %% Assistant Search Flow
+    Iframe --->|Render WebUI| WebUI
+    Gateway --->|MCP search_knowledge_base| MCP
+    Search --->|Query Chunks & Cosine Similarity| Postgres
+    Search -.->|Return Grounded Chunks| Gateway
+
+    %% Styling
+    style API fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Agent fill:#efebe9,stroke:#4e342e,stroke-width:2px
+    style Data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AI fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style UI fill:#fafafa,stroke:#9e9e9e,stroke-width:2px
 ```
 
 ---

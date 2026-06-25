@@ -85,33 +85,82 @@ leadgen-api/
 ---
 
 ## 4. High-Level Architecture
-The system consists of the `leadgen-api` container communicating with external databases, storage systems, and the Hermes Agent execution stack.
+The system architecture separates the local interface and data layer of the `leadgen-api` service from the external agent execution runtime, database, storage, and AI services.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor User as User / Web Client
-    participant WebUI as Hermes WebUI (External)
-    participant Gateway as Hermes Gateway (External)
-    participant API as leadgen-api (FastAPI)
-    database Postgres as PostgreSQL + pgvector (External)
-    participant MinIO as MinIO S3 Storage (External)
-
-    User->>API: Upload source file & metadata (via Admin UI / REST)
-    API->>MinIO: Store raw source file in S3 bucket (leadgen-docs)
-    API->>Postgres: Create document row & enqueue ingestion job
-    API->>API: Execute pipeline: parse → chunk → generate OpenAI embeddings
-    API->>Postgres: Store chunks & vector embeddings, set status to 'processed'
+graph TD
+    %% Define actor
+    User([User])
     
-    User->>WebUI: Prompt assistant / Ask question
-    WebUI->>Gateway: Execute Agent loop
-    Gateway->>API: MCP Tool Call: search_knowledge_base(query, filters)
-    API->>Postgres: Query matching chunks via pgvector cosine similarity
-    Postgres-->>API: Return matched chunks & scores
-    API-->>Gateway: Return JSON tool response
-    Gateway-->>WebUI: Stream generated agent answer (grounded on context)
-    WebUI-->>User: Display answer
+    %% Primary User Interface
+    subgraph UI ["User Interface (leadgen-api & iframe)"]
+        LeadgenUI["Leadgen UI / Admin Panel<br/>(Served by leadgen-api)"]
+        Iframe["Assistant Tab<br/>(Iframe)"]
+        LeadgenUI -.->|Embeds| Iframe
+    end
+
+    %% leadgen-api Responsibility Block
+    subgraph API ["leadgen-api Service"]
+        REST["Admin UI & REST API"]
+        MCP["MCP Endpoint /mcp/ &<br/>search_knowledge_base tool"]
+        Ingestion["Ingestion Orchestration<br/>(Parsing & Chunking)"]
+        Search["Semantic Search Service"]
+        DocsMgmt["Document & Processing Job Management"]
+        
+        REST ---> Ingestion
+        REST ---> DocsMgmt
+        MCP ---> Search
+    end
+
+    %% Agent Runtime
+    subgraph Agent ["Agent Runtime (External)"]
+        WebUI["Hermes WebUI"]
+        Gateway["Hermes Gateway<br/>(Agent Loop)"]
+        WebUI <-->|WebSocket/HTTP| Gateway
+    end
+
+    %% Data Infrastructure
+    subgraph Data ["Data Infrastructure (External)"]
+        Postgres[("PostgreSQL + pgvector<br/>(Metadata, Chunks, Embeddings, Jobs)")]
+        Minio[("MinIO Object Storage<br/>(Raw Source Files)")]
+    end
+
+    %% External AI Service
+    subgraph AI ["External AI Service (External)"]
+        OpenAI["OpenAI Embeddings API<br/>(text-embedding-3-small)"]
+    end
+
+    %% Request flows
+    User --->|1. Ingestion Entrypoint| LeadgenUI
+    User --->|2. Assistant Search Entrypoint| Iframe
+    
+    %% Document Ingestion Flow
+    LeadgenUI --->|Upload File / Trigger Rebuild| REST
+    Ingestion --->|Store Source Files| Minio
+    Ingestion --->|Write Metadata, Chunks & Job Logs| Postgres
+    Ingestion --->|Request Embeddings| OpenAI
+
+    %% Assistant Search Flow
+    Iframe --->|Render WebUI| WebUI
+    Gateway --->|MCP search_knowledge_base| MCP
+    Search --->|Query Chunks & Cosine Similarity| Postgres
+    Search -.->|Return Grounded Chunks| Gateway
+
+    %% Styling
+    style API fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Agent fill:#efebe9,stroke:#4e342e,stroke-width:2px
+    style Data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AI fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style UI fill:#fafafa,stroke:#9e9e9e,stroke-width:2px
 ```
+
+### High-Level Service Flows
+
+#### 1. Document Ingestion Flow
+User/Admin UI → `leadgen-api` (Admin UI & REST API) → Ingestion Orchestration → `MinIO` (for source files) & `PostgreSQL` (for metadata, chunks, embeddings, and job runs), invoking `OpenAI Embeddings API` during embedding generation.
+
+#### 2. Assistant Search Flow
+User → Leadgen Assistant Iframe → `Hermes WebUI` (loads in iframe) → `Hermes Gateway` (evaluates agent reasoning loop) → MCP `search_knowledge_base` (invoked via stateless `/mcp/` endpoint) → `leadgen-api` (Semantic Search Service) → `PostgreSQL + pgvector` (fetches matched chunks and similarity scores) → Grounded chunks returned to `Hermes Gateway` over MCP transport.
 
 > [!IMPORTANT]
 > **Separation of Concerns**: This repository (`leadgen-api`) only provisions the FastAPI backend container and the admin interface. External components like **PostgreSQL**, **MinIO**, **Hermes Gateway**, and **Hermes WebUI** are separate infrastructure elements that are run externally or in separate containers connected via the shared `leadgen_net` Docker network.
