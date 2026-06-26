@@ -80,6 +80,70 @@ _UI_HTML = r"""<!DOCTYPE html>
       margin-top: 0.25rem; 
     }
 
+    /* ── User Profile ── */
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--surface2);
+      padding: 0.4rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #4338ca);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      max-width: 130px;
+    }
+    .user-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .user-email {
+      font-size: 0.7rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-signout {
+      background: transparent;
+      border: none;
+      color: #f87171;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      border-left: 1px solid var(--border);
+      transition: color 0.15s;
+    }
+    .btn-signout:hover {
+      color: #ef4444;
+      text-decoration: underline;
+    }
+    .btn-signout:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
     /* ── Layout ── */
     .wrap { 
       max-width: 1200px; 
@@ -706,7 +770,8 @@ _UI_HTML = r"""<!DOCTYPE html>
       <h1>⚡ Knowledge Base Console</h1>
       <p>Documents directory · semantic indexing · search admin</p>
     </div>
-    <div>
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: flex-end;">
+      {user_profile_html}
       <button class="btn" onclick="openCreateModal()">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
         Upload Document
@@ -1732,8 +1797,18 @@ _UI_HTML = r"""<!DOCTYPE html>
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+import html
 
 from src.dependencies.auth import get_optional_user
+
+def get_initials(name: str) -> str:
+    """Generate safe initials from a display name."""
+    if not name:
+        return "??"
+    parts = name.strip().split()
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[-1][0]).upper()
+    return name[:2].upper()
 
 @router.get("/ui", response_class=HTMLResponse, include_in_schema=False)
 async def admin_ui(request: Request):
@@ -1742,6 +1817,36 @@ async def admin_ui(request: Request):
     if not user:
         return RedirectResponse(url="/auth/login?return_to=/ui", status_code=303)
         
+    name = user.get("name")
+    preferred_username = user.get("preferred_username")
+    
+    display_name = name if name else preferred_username
+    display_email = preferred_username if name and preferred_username else ""
+    
+    safe_name = html.escape(display_name or "")
+    safe_email = html.escape(display_email or "")
+    safe_initials = html.escape(get_initials(str(display_name or "")))
+    
+    user_html = f"""
+    <div class="user-profile">
+      <div class="user-avatar" title="{safe_name}">{safe_initials}</div>
+      <div class="user-info">
+        <div class="user-name" title="{safe_name}">{safe_name}</div>
+    """
+    if safe_email:
+        user_html += f'        <div class="user-email" title="{safe_email}">{safe_email}</div>\n'
+        
+    user_html += """      </div>
+      <form method="post" action="/auth/logout" style="margin: 0; padding: 0; display: flex;">
+        <button type="submit" class="btn-signout" aria-label="Sign out">Sign out</button>
+      </form>
+    </div>
+    """
+        
     escaped_url_json = json.dumps(settings.HERMES_WEBUI_URL)
     html_content = _UI_HTML.replace("{hermes_webui_url_json}", escaped_url_json)
-    return HTMLResponse(content=html_content, status_code=200)
+    html_content = html_content.replace("{user_profile_html}", user_html)
+    
+    response = HTMLResponse(content=html_content, status_code=200)
+    response.headers["Cache-Control"] = "no-store"
+    return response

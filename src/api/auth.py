@@ -111,7 +111,11 @@ async def callback_post(request: Request, state: str = Form(...), code: Optional
     # Handle Microsoft OAuth error
     if error:
         logger.warning(f"OAuth error from Microsoft: {error} - {error_description}")
-        return HTMLResponse(f"<h1>Authentication Error</h1><p>{error_description}</p>", status_code=400)
+        if error == "access_denied":
+            user_msg = "Authentication was cancelled or administrator approval is required. Please try again or contact your administrator."
+        else:
+            user_msg = "An error occurred during authentication. Please try again."
+        return HTMLResponse(f"<h1>Authentication Error</h1><p>{user_msg}</p>", status_code=400)
         
     # Get form data dict
     form_data = dict(await request.form())
@@ -164,11 +168,13 @@ async def logout(request: Request):
 
 
 @router.get("/me")
-async def get_me(request: Request):
+async def get_me(request: Request, response: Response):
     """Return current user identity."""
     user = await get_optional_user(request)
     if not user:
-        return Response(status_code=status.HTTP_401_UNAUTHORIZED, content="Not authenticated")
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return "Not authenticated"
+    response.headers["Cache-Control"] = "no-store"
     return user
 
 
