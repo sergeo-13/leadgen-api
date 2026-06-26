@@ -2,8 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from starlette.middleware.sessions import SessionMiddleware
+
 from src.api.v1 import documents, health, hermes, ingestion
-from src.api import ui
+from src.api import ui, auth
 from src.config import settings
 
 
@@ -25,17 +27,29 @@ app = FastAPI(
 )
 
 # CORS configuration
+allowed_origins = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins if allowed_origins else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Session middleware for Entra authentication
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.AUTH_SESSION_SIGNING_SECRET,
+    max_age=settings.AUTH_SESSION_MAX_AGE_SECONDS,
+    same_site="lax",
+    https_only=settings.AUTH_SESSION_COOKIE_SECURE
+)
+
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(health.router, tags=["health"])  # Expose /health at root
+app.include_router(auth.router, tags=["auth"])
 app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
 app.include_router(ingestion.router, prefix="/api/v1", tags=["ingestion"])
 app.include_router(hermes.router, prefix="/api/v1", tags=["hermes"])

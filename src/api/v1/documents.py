@@ -8,9 +8,11 @@ import json
 import time
 from typing import Optional, List
 
-from fastapi import APIRouter, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Form, HTTPException, UploadFile, status, Depends
 
 from src.config import settings
+from src.dependencies.auth import get_current_user
+from src.dependencies.csrf import verify_csrf
 from src.models.schemas import (
     DocumentIngestRequest,
     DocumentIngestResponse,
@@ -39,7 +41,7 @@ from src.services.minio_service import check_object_exists, upload_object
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
@@ -77,6 +79,7 @@ def _unique_object_key(base_key: str) -> str:
     response_model=DocumentIngestResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Ingest a new document (file must already be in MinIO)",
+    dependencies=[Depends(verify_csrf)]
 )
 async def ingest_document(payload: DocumentIngestRequest):
     """
@@ -121,6 +124,7 @@ async def ingest_document(payload: DocumentIngestRequest):
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload a source file and optionally process it immediately",
+    dependencies=[Depends(verify_csrf)]
 )
 async def upload_document(
     file: UploadFile,
@@ -299,6 +303,7 @@ async def upload_document(
     response_model=DocumentSearchResponse,
     status_code=status.HTTP_200_OK,
     summary="Search document chunks semantically",
+    dependencies=[Depends(verify_csrf)]
 )
 async def search_documents(payload: DocumentSearchRequest):
     """
@@ -371,7 +376,8 @@ async def get_document(document_id: str):
 
 @router.patch(
     "/documents/{document_id}",
-    summary="Update document metadata"
+    summary="Update document metadata",
+    dependencies=[Depends(verify_csrf)]
 )
 async def patch_document(document_id: str, title: str, metadata: DocumentMetadata):
     """
@@ -406,7 +412,8 @@ async def patch_document(document_id: str, title: str, metadata: DocumentMetadat
     "/documents/{document_id}/reingest",
     response_model=DocumentIngestResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Rebuild Search Index"
+    summary="Rebuild Search Index",
+    dependencies=[Depends(verify_csrf)]
 )
 async def reingest_document(document_id: str, payload: ReingestRequest):
     """
@@ -477,7 +484,8 @@ async def reingest_document(document_id: str, payload: ReingestRequest):
     "/documents/{document_id}/replace-file",
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Replace document file and rebuild search index"
+    summary="Replace document file and rebuild search index",
+    dependencies=[Depends(verify_csrf)]
 )
 async def replace_document_file(
     document_id: str,
@@ -628,7 +636,8 @@ async def replace_document_file(
 
 @router.post(
     "/documents/{document_id}/archive",
-    summary="Archive document"
+    summary="Archive document",
+    dependencies=[Depends(verify_csrf)]
 )
 async def archive_doc(document_id: str):
     """Soft-delete/archive document. Sets status to 'archived'."""
@@ -657,7 +666,8 @@ async def archive_doc(document_id: str):
 
 @router.post(
     "/documents/{document_id}/restore",
-    summary="Restore document"
+    summary="Restore document",
+    dependencies=[Depends(verify_csrf)]
 )
 async def restore_doc(document_id: str):
     """Restore document. If chunks are present, sets status to 'processed'; else 'uploaded'."""

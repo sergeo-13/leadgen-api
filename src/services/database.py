@@ -825,6 +825,69 @@ async def update_document_status(document_id: str, status: str) -> bool:
         await conn.close()
 
 
+async def create_login_transaction(state_hash: str, msal_flow: dict, return_to: str, expires_in_seconds: int) -> None:
+    """
+    Create a new login transaction and opportunistically clean up expired ones.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        async with conn.transaction():
+            # Opportunistic cleanup
+            await conn.execute(
+                "DELETE FROM auth_login_transactions WHERE expires_at <= NOW()"
+            )
+            
+            await conn.execute(
+                """
+                INSERT INTO auth_login_transactions (state_hash, msal_flow, return_to, expires_at)
+                VALUES ($1, $2::jsonb, $3, NOW() + make_interval(secs => $4))
+                """,
+                state_hash,
+                json.dumps(msal_flow),
+                return_to,
+                expires_in_seconds
+            )
+    finally:
+        await conn.close()
+
+
+async def consume_login_transaction(state_hash: str) -> Optional[Tuple[dict, str]]:
+    """
+    Atomically consume a login transaction by state_hash.
+    Returns (msal_flow, return_to) if found and not expired.
+    """
+    conn = await asyncpg.connect(
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        database=settings.POSTGRES_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASSWORD,
+        timeout=5,
+    )
+    try:
+        row = await conn.fetchrow(
+            """
+            DELETE FROM auth_login_transactions
+            WHERE state_hash = $1 AND expires_at > NOW()
+            RETURNING msal_flow, return_to
+            """,
+            state_hash
+        )
+        if row:
+            flow_data = json.loads(row["msal_flow"]) if isinstance(row["msal_flow"], str) else row["msal_flow"]
+            return flow_data, row["return_to"]
+        return None
+    finally:
+        await conn.close()
+
+
 async def retry_ingestion_job(job_id: str) -> bool:
     """
     Retry a failed ingestion job. Resets status to pending, error to NULL,

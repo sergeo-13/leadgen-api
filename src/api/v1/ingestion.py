@@ -1,8 +1,9 @@
 """Ingestion API endpoints."""
 
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, Depends
 
+from src.dependencies.auth import verify_ingestion_api_key
 from src.models.schemas import JobResponse
 from src.services.database import (
     get_job_details_by_id,
@@ -11,7 +12,7 @@ from src.services.database import (
 )
 from src.services.ingestion_service import process_job, process_next_job
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_ingestion_api_key)])
 
 
 @router.post(

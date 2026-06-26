@@ -1730,9 +1730,18 @@ _UI_HTML = r"""<!DOCTYPE html>
 </html>"""
 
 
+from fastapi import Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+
+from src.dependencies.auth import get_optional_user
+
 @router.get("/ui", response_class=HTMLResponse, include_in_schema=False)
-async def admin_ui():
+async def admin_ui(request: Request):
     """Internal admin UI — document management dashboard."""
+    user = await get_optional_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login?return_to=/ui", status_code=303)
+        
     escaped_url_json = json.dumps(settings.HERMES_WEBUI_URL)
     html_content = _UI_HTML.replace("{hermes_webui_url_json}", escaped_url_json)
     return HTMLResponse(content=html_content, status_code=200)

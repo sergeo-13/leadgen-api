@@ -3,8 +3,11 @@
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
+
+from src.dependencies.auth import get_current_user
+from src.dependencies.csrf import verify_csrf
 
 from src.services.hermes_client import (
     HermesAPIError,
@@ -13,7 +16,7 @@ from src.services.hermes_client import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/hermes")
+router = APIRouter(prefix="/hermes", dependencies=[Depends(get_current_user)])
 
 
 class HermesMessageRequest(BaseModel):
@@ -50,7 +53,8 @@ class HermesHealthResponse(BaseModel):
     response_model=HermesMessageResponse,
     status_code=status.HTTP_200_OK,
     summary="Send a test message to Hermes",
-    description="Programmatically logs and forwards a message to the internal Hermes gateway."
+    description="Programmatically logs and forwards a message to the internal Hermes gateway.",
+    dependencies=[Depends(verify_csrf)]
 )
 async def test_message(payload: HermesMessageRequest) -> Dict[str, Any]:
     """Test message endpoint for sending prompts to Hermes."""

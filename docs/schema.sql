@@ -76,3 +76,14 @@ WHERE status = 'active'
     WHERE c.document_id = d.id
       AND c.embedding IS NOT NULL
   );
+
+-- Auth Login Transactions Table
+CREATE TABLE IF NOT EXISTS auth_login_transactions (
+    state_hash TEXT PRIMARY KEY,
+    msal_flow JSONB NOT NULL,
+    return_to TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS auth_login_transactions_expires_at_idx ON auth_login_transactions(expires_at);
