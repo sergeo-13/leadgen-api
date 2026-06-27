@@ -1,11 +1,153 @@
 """Internal admin UI served at GET /ui."""
 
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 import json
+import urllib.parse
+from typing import Optional
 from src.config import settings
 
 router = APIRouter()
+
+_LOGIN_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Base API — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:            #080b10;
+      --surface:       #101520;
+      --border:        #263345;
+      --accent:        #6366f1;
+      --accent-h:      #4f46e5;
+      --text:          #f3f4f6;
+      --muted:         #9ca3af;
+      --radius:        14px;
+      --radius-sm:     8px;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.05) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.85);
+    }
+    .brand h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #4338ca 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .brand p { 
+      color: var(--muted); 
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+    .btn-ms {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      background: #2f2f2f;
+      color: white;
+      text-decoration: none;
+      padding: 0.75rem 1rem;
+      border: 1px solid #555;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .btn-ms:hover {
+      background: #3f3f3f;
+      border-color: #666;
+    }
+    .btn-ms:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .btn-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .btn-text span:first-child {
+      font-size: 0.95rem;
+    }
+    .btn-text span:last-child {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #aaa;
+    }
+    .message {
+      margin-bottom: 1.5rem;
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .message.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .message.success {
+      background: rgba(16, 185, 129, 0.1);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="brand">
+      <h1>Leadgen Assistant</h1>
+      <p>Knowledge Base API Console</p>
+    </div>
+    {message_html}
+    <a href="{auth_url}" class="btn-ms">
+      <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      <div class="btn-text">
+        <span>Sign in with Microsoft</span>
+        <span>Use your work or school account</span>
+      </div>
+    </a>
+  </div>
+</body>
+</html>"""
 
 _UI_HTML = r"""<!DOCTYPE html>
 <html lang="en">
@@ -1811,11 +1953,11 @@ def get_initials(name: str) -> str:
     return name[:2].upper()
 
 @router.get("/ui", response_class=HTMLResponse, include_in_schema=False)
-async def admin_ui(request: Request):
+async def admin_ui(request: Request, response: Response):
     """Internal admin UI — document management dashboard."""
     user = await get_optional_user(request)
     if not user:
-        return RedirectResponse(url="/auth/login?return_to=/ui", status_code=303)
+        return RedirectResponse(url="/login?return_to=/ui", status_code=303)
         
     name = user.get("name")
     preferred_username = user.get("preferred_username")
@@ -1846,6 +1988,45 @@ async def admin_ui(request: Request):
     escaped_url_json = json.dumps(settings.HERMES_WEBUI_URL)
     html_content = _UI_HTML.replace("{hermes_webui_url_json}", escaped_url_json)
     html_content = html_content.replace("{user_profile_html}", user_html)
+    
+    response = HTMLResponse(content=html_content, status_code=200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@router.get("/login", response_class=HTMLResponse, include_in_schema=False)
+async def login_page(
+    request: Request,
+    response: Response,
+    return_to: Optional[str] = None,
+    error: Optional[str] = None,
+    logged_out: Optional[str] = None
+):
+    """Public login page."""
+    # Check if already authenticated
+    user = await get_optional_user(request)
+    if user:
+        return RedirectResponse(url="/ui", status_code=303)
+        
+    message_html = ""
+    if logged_out == "1":
+        message_html = '<div class="message success">You have been signed out successfully.</div>'
+    elif error:
+        error_msgs = {
+            "access_denied": "Authentication was cancelled or administrator approval is required. Please try again or contact your administrator.",
+            "session_expired": "Your login session expired. Please try again.",
+            "auth_failed": "An error occurred during authentication. Please try again."
+        }
+        safe_msg = error_msgs.get(error, "An error occurred during authentication. Please try again.")
+        message_html = f'<div class="message error">{safe_msg}</div>'
+
+    # Build auth URL
+    auth_url = "/auth/login"
+    if return_to:
+        auth_url += f"?return_to={urllib.parse.quote(return_to, safe='')}"
+        
+    html_content = _LOGIN_HTML.replace("{message_html}", message_html)
+    html_content = html_content.replace("{auth_url}", html.escape(auth_url))
     
     response = HTMLResponse(content=html_content, status_code=200)
     response.headers["Cache-Control"] = "no-store"

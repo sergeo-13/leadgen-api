@@ -164,3 +164,38 @@ The agent gateway and web interface utilize a shared storage directory mapped in
   * `/workspace/AGENTS.md`: Workspace-specific prompt profiles defining guidelines.
   > [!WARNING]
   > These files configure agent instructions and do **not** provide network, system, or database security isolation.
+
+---
+
+## Authentication Flow
+
+`leadgen-api` relies on Microsoft Entra ID (MSAL) for internal admin UI security. 
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant API as leadgen-api
+    participant MSAL as Microsoft Entra
+
+    Browser->>API: GET /ui (unauthenticated)
+    API-->>Browser: 303 Redirect to /login?return_to=/ui
+    Browser->>API: GET /login
+    API-->>Browser: 200 OK (Public Login Page)
+    Browser->>API: Click "Sign in" -> GET /auth/login
+    API->>API: Create state & login transaction
+    API-->>Browser: 302 Redirect to Microsoft OAuth
+    Browser->>MSAL: Authenticate
+    MSAL-->>Browser: 302 Redirect (form_post callback)
+    Browser->>API: POST /auth/callback
+    API->>MSAL: acquire_token_by_auth_code_flow
+    MSAL-->>API: ID Token & Claims
+    API->>API: Set secure cookie session
+    API-->>Browser: 303 Redirect to /ui
+```
+
+### Logout Flow
+1. User clicks "Sign out" (triggers a POST form to `/auth/logout`).
+2. API validates the authenticated session, clears the local secure cookie, and redirects the browser to the Microsoft Entra `end-session` endpoint.
+3. Microsoft logs the user out globally (for this session) and redirects to the configured post-logout URI (`/auth/signed-out`).
+4. API intercepts `/auth/signed-out` and redirects to `/login?logged_out=1`.
+5. Browser renders the public login page with a safe success message.

@@ -78,3 +78,11 @@ This document records the architectural decisions made during the design and dev
   ```sql
   DROP INDEX IF EXISTS document_chunks_embedding_idx;
   ```
+
+---
+
+## ADR-010: Server-Rendered Public Login Page with Microsoft Entra
+
+* **Status**: **Active**
+* **Decision**: Serve a unified, dark-themed public login page (`/login`) directly from `leadgen-api`, using safe query string status/error mappings, and explicitly avoiding frontend JavaScript applications for authentication state. Logout uses a strict POST form.
+* **Reason**: Ensures robust security. Hardcoded error code mappings (e.g., `access_denied` -> generic message) prevent raw OAuth error exposure. A strict POST form for `/auth/logout` respects CSRF policies while reliably clearing the secure cookie session before redirecting to the Microsoft logout endpoint. This eliminates cross-origin complexities and prevents malicious open redirects.

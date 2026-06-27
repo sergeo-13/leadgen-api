@@ -7,7 +7,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request, Response, Form, status
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse
 
 from src.config import settings
 from src.services import database, auth_service
@@ -96,7 +96,7 @@ async def callback_post(request: Request, state: str = Form(...), code: Optional
     # 1. State validation
     if not state or len(state) > 1024:
         logger.warning("Invalid state parameter size")
-        return HTMLResponse("<h1>Authentication Error</h1><p>Invalid state.</p>", status_code=400)
+        return RedirectResponse(url="/login?error=auth_failed", status_code=status.HTTP_303_SEE_OTHER)
 
     state_hash = _hash_state(state)
     
@@ -104,18 +104,19 @@ async def callback_post(request: Request, state: str = Form(...), code: Optional
     transaction = await database.consume_login_transaction(state_hash)
     if not transaction:
         logger.warning("Auth transaction not found or expired")
-        return HTMLResponse("<h1>Authentication Error</h1><p>Login session expired or invalid. Please try again.</p>", status_code=400)
+        return RedirectResponse(url="/login?error=session_expired", status_code=status.HTTP_303_SEE_OTHER)
     
     msal_flow, return_to = transaction
     
     # Handle Microsoft OAuth error
     if error:
-        logger.warning(f"OAuth error from Microsoft: {error} - {error_description}")
+        # Log the raw details securely
+        logger.warning(f"OAuth error from Microsoft: {error}")
         if error == "access_denied":
-            user_msg = "Authentication was cancelled or administrator approval is required. Please try again or contact your administrator."
+            error_code = "access_denied"
         else:
-            user_msg = "An error occurred during authentication. Please try again."
-        return HTMLResponse(f"<h1>Authentication Error</h1><p>{user_msg}</p>", status_code=400)
+            error_code = "auth_failed"
+        return RedirectResponse(url=f"/login?error={error_code}", status_code=status.HTTP_303_SEE_OTHER)
         
     # Get form data dict
     form_data = dict(await request.form())
@@ -128,15 +129,15 @@ async def callback_post(request: Request, state: str = Form(...), code: Optional
     )
     
     if "error" in result:
-        logger.warning(f"MSAL acquire_token_by_auth_code_flow failed: {result.get('error')} - {result.get('error_description')}")
-        return HTMLResponse("<h1>Authentication Error</h1><p>Failed to acquire token.</p>", status_code=400)
+        logger.warning(f"MSAL acquire_token_by_auth_code_flow failed: {result.get('error')}")
+        return RedirectResponse(url="/login?error=auth_failed", status_code=status.HTTP_303_SEE_OTHER)
         
     # 4. Claim validation
     try:
         auth_service.validate_id_token_claims(result.get("id_token_claims", {}))
     except ValueError as e:
         logger.warning(f"Identity claim validation failed: {str(e)}")
-        return HTMLResponse("<h1>Authentication Error</h1><p>Identity validation failed.</p>", status_code=403)
+        return RedirectResponse(url="/login?error=auth_failed", status_code=status.HTTP_303_SEE_OTHER)
         
     # 5. Set session
     claims = result["id_token_claims"]
@@ -153,6 +154,10 @@ async def callback_post(request: Request, state: str = Form(...), code: Optional
 @router.post("/logout")
 async def logout(request: Request):
     """Clear session and redirect to Microsoft logout."""
+    user = await get_optional_user(request)
+    if not user:
+        return Response(status_code=status.HTTP_401_UNAUTHORIZED, content="Not authenticated")
+
     request.session.clear()
     if not settings.ENTRA_ENABLED:
         return RedirectResponse(url="/auth/signed-out", status_code=status.HTTP_303_SEE_OTHER)
@@ -180,26 +185,7 @@ async def get_me(request: Request, response: Response):
 
 @router.get("/signed-out")
 async def signed_out():
-    """Signed out confirmation page."""
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Signed Out</title>
-        <style>
-            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f5; margin: 0; }
-            .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
-            a { color: #0066cc; text-decoration: none; margin-top: 1rem; display: inline-block; padding: 0.5rem 1rem; border: 1px solid #0066cc; border-radius: 4px; }
-            a:hover { background-color: #f0f7ff; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <h1>Signed Out</h1>
-            <p>You have been signed out. Sign in again.</p>
-            <a href="/ui">Return to Login</a>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(html)
+    """Signed out confirmation redirect."""
+    response = RedirectResponse(url="/login?logged_out=1", status_code=status.HTTP_303_SEE_OTHER)
+    response.headers["Cache-Control"] = "no-store"
+    return response
