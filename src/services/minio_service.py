@@ -65,7 +65,9 @@ def check_object_exists(object_key: str) -> bool:
         client.stat_object(settings.MINIO_BUCKET, object_key)
         return True
     except Exception as e:
-        logger.warning(f"Object '{object_key}' check failed in bucket '{settings.MINIO_BUCKET}': {e}")
+        logger.warning(
+            f"Object '{object_key}' check failed in bucket '{settings.MINIO_BUCKET}': {e}"
+        )
         return False
 
 
@@ -92,7 +94,9 @@ def download_object(bucket_name: str, object_key: str) -> bytes:
             response.close()
             response.release_conn()
     except Exception as e:
-        logger.error(f"Failed to download object '{object_key}' from bucket '{bucket_name}': {e}")
+        logger.error(
+            f"Failed to download object '{object_key}' from bucket '{bucket_name}': {e}"
+        )
         raise
 
 
@@ -123,7 +127,9 @@ def upload_object(
             length=len(data),
             content_type=content_type,
         )
-        logger.info(f"Uploaded '{object_key}' ({len(data)} bytes) to bucket '{bucket_name}'")
+        logger.info(
+            f"Uploaded '{object_key}' ({len(data)} bytes) to bucket '{bucket_name}'"
+        )
     except Exception as e:
         logger.error(f"Failed to upload '{object_key}' to bucket '{bucket_name}': {e}")
         raise

@@ -14,10 +14,12 @@ async def lifespan(app: FastAPI):
     # Explicit startup/shutdown handling for MCP session manager
     if settings.MCP_ENABLED:
         from src.api.mcp import mcp
+
         async with mcp.session_manager.run():
             yield
     else:
         yield
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -27,7 +29,9 @@ app = FastAPI(
 )
 
 # CORS configuration
-allowed_origins = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+allowed_origins = [
+    o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,7 +47,7 @@ app.add_middleware(
     secret_key=settings.AUTH_SESSION_SIGNING_SECRET,
     max_age=settings.AUTH_SESSION_MAX_AGE_SECONDS,
     same_site="lax",
-    https_only=settings.AUTH_SESSION_COOKIE_SECURE
+    https_only=settings.AUTH_SESSION_COOKIE_SECURE,
 )
 
 # Include routers
@@ -60,6 +64,7 @@ app.include_router(home.router, tags=["home"])
 # Conditionally mount MCP application under isolated /mcp prefix
 if settings.MCP_ENABLED:
     from src.api.mcp import mcp, MCPAuthMiddleware
+
     mcp_asgi_app = mcp.streamable_http_app()
     authenticated_mcp_app = MCPAuthMiddleware(mcp_asgi_app, settings.MCP_API_KEY)
     app.mount("/mcp", authenticated_mcp_app)

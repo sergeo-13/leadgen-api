@@ -23,7 +23,7 @@ async def perform_semantic_search(
     embeddings = generate_embeddings([query])
     if not embeddings:
         raise RuntimeError("Failed to generate embedding for search query.")
-    
+
     query_embedding = embeddings[0]
 
     results_data = await search_document_chunks(

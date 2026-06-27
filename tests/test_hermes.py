@@ -5,7 +5,11 @@ import pytest
 import httpx
 
 from src.config import settings
-from src.services.hermes_client import HermesClient, HermesConfigurationError, HermesAPIError
+from src.services.hermes_client import (
+    HermesClient,
+    HermesConfigurationError,
+    HermesAPIError,
+)
 
 
 @pytest.fixture
@@ -14,12 +18,15 @@ def mock_async_client():
     mock_client = MagicMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
-    
-    with patch("src.services.hermes_client.httpx.AsyncClient", return_value=mock_client):
+
+    with patch(
+        "src.services.hermes_client.httpx.AsyncClient", return_value=mock_client
+    ):
         yield mock_client
 
 
 # ─── Client Service Unit Tests ────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_client_send_message_success(mock_async_client):
@@ -29,24 +36,18 @@ async def test_client_send_message_success(mock_async_client):
     mock_response.is_error = False
     mock_response.json.return_value = {
         "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": "Hello! I am Hermes."
-                }
-            }
+            {"message": {"role": "assistant", "content": "Hello! I am Hermes."}}
         ]
     }
     mock_async_client.post = AsyncMock(return_value=mock_response)
 
     with patch.object(settings, "HERMES_API_KEY", "test-key"):
         client = HermesClient()
-        result = await client.send_message(
-            session_key="test-session",
-            message="Hi"
-        )
+        result = await client.send_message(session_key="test-session", message="Hi")
         assert result["response"] == "Hello! I am Hermes."
-        assert result["raw"]["choices"][0]["message"]["content"] == "Hello! I am Hermes."
+        assert (
+            result["raw"]["choices"][0]["message"]["content"] == "Hello! I am Hermes."
+        )
 
 
 @pytest.mark.asyncio
@@ -101,15 +102,20 @@ async def test_client_send_message_non_2xx_status(mock_async_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("malformed_json", [
-    {},  # Empty response
-    {"other": []},  # Missing choices
-    {"choices": []},  # Empty choices list
-    {"choices": [{}]},  # Choice missing message
-    {"choices": [{"message": {}}]},  # Message missing content
-    {"choices": [{"message": {"content": None}}]},  # Null content
-])
-async def test_client_send_message_malformed_response(mock_async_client, malformed_json):
+@pytest.mark.parametrize(
+    "malformed_json",
+    [
+        {},  # Empty response
+        {"other": []},  # Missing choices
+        {"choices": []},  # Empty choices list
+        {"choices": [{}]},  # Choice missing message
+        {"choices": [{"message": {}}]},  # Message missing content
+        {"choices": [{"message": {"content": None}}]},  # Null content
+    ],
+)
+async def test_client_send_message_malformed_response(
+    mock_async_client, malformed_json
+):
     """Test ValueError raised on various malformed JSON structures."""
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -121,10 +127,13 @@ async def test_client_send_message_malformed_response(mock_async_client, malform
         client = HermesClient()
         with pytest.raises(ValueError) as exc:
             await client.send_message(session_key="test-session", message="Hi")
-        assert "Malformed response" in str(exc.value) or "missing choices[0].message.content" in str(exc.value)
+        assert "Malformed response" in str(
+            exc.value
+        ) or "missing choices[0].message.content" in str(exc.value)
 
 
 # ─── API Router Integration Tests ────────────────────────────────────────────
+
 
 def test_api_test_message_success(client, mock_async_client):
     """Test API POST /api/v1/hermes/test-message success."""
@@ -132,21 +141,14 @@ def test_api_test_message_success(client, mock_async_client):
     mock_response.status_code = 200
     mock_response.is_error = False
     mock_response.json.return_value = {
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": "Hello!"
-                }
-            }
-        ]
+        "choices": [{"message": {"role": "assistant", "content": "Hello!"}}]
     }
     mock_async_client.post = AsyncMock(return_value=mock_response)
 
     with patch.object(settings, "HERMES_API_KEY", "test-key"):
         payload = {
             "session_key": "leadgen-test-1",
-            "message": "Hello. Reply with one short sentence."
+            "message": "Hello. Reply with one short sentence.",
         }
         response = client.post("/api/v1/hermes/test-message", json=payload)
         assert response.status_code == 200
@@ -173,10 +175,7 @@ def test_api_test_message_validation_error(client):
 def test_api_test_message_missing_key(client):
     """Test API returns 400 Bad Request when API key is missing."""
     with patch.object(settings, "HERMES_API_KEY", ""):
-        payload = {
-            "session_key": "leadgen-test-1",
-            "message": "Hello"
-        }
+        payload = {"session_key": "leadgen-test-1", "message": "Hello"}
         response = client.post("/api/v1/hermes/test-message", json=payload)
         assert response.status_code == 400
         assert "key" in response.json()["detail"]
@@ -191,10 +190,7 @@ def test_api_test_message_gateway_error(client, mock_async_client):
     mock_async_client.post = AsyncMock(return_value=mock_response)
 
     with patch.object(settings, "HERMES_API_KEY", "test-key"):
-        payload = {
-            "session_key": "leadgen-test-1",
-            "message": "Hello"
-        }
+        payload = {"session_key": "leadgen-test-1", "message": "Hello"}
         response = client.post("/api/v1/hermes/test-message", json=payload)
         assert response.status_code == 502
         assert "returned status code" in response.json()["detail"]

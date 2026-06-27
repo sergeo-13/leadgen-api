@@ -18,7 +18,7 @@ router = APIRouter(dependencies=[Depends(verify_ingestion_api_key)])
 @router.post(
     "/ingestion/process-next",
     status_code=status.HTTP_200_OK,
-    summary="Process the next pending ingestion job"
+    summary="Process the next pending ingestion job",
 )
 async def process_next():
     """
@@ -34,7 +34,7 @@ async def process_next():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ingestion processing failed: {str(e)}"
+            detail=f"Ingestion processing failed: {str(e)}",
         )
 
 
@@ -42,26 +42,25 @@ async def process_next():
     "/ingestion/jobs",
     response_model=List[JobResponse],
     status_code=status.HTTP_200_OK,
-    summary="List ingestion jobs"
+    summary="List ingestion jobs",
 )
 async def list_jobs(
-    status_filter: Optional[str] = Query(None, alias="status", description="Filter by job status"),
+    status_filter: Optional[str] = Query(
+        None, alias="status", description="Filter by job status"
+    ),
     document_id: Optional[str] = Query(None, description="Filter by document ID"),
     limit: int = Query(50, ge=1, le=100, description="Limit results"),
-    offset: int = Query(0, ge=0, description="Offset results")
+    offset: int = Query(0, ge=0, description="Offset results"),
 ):
     """List all ingestion jobs with optional filtering by status and document_id, supporting pagination."""
     try:
         return await list_ingestion_jobs(
-            status=status_filter,
-            document_id=document_id,
-            limit=limit,
-            offset=offset
+            status=status_filter, document_id=document_id, limit=limit, offset=offset
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list ingestion jobs: {e}"
+            detail=f"Failed to list ingestion jobs: {e}",
         )
 
 
@@ -69,7 +68,7 @@ async def list_jobs(
     "/ingestion/jobs/{job_id}",
     response_model=JobResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get ingestion job details"
+    summary="Get ingestion job details",
 )
 async def get_job(job_id: str):
     """Retrieve details for a specific ingestion job."""
@@ -78,7 +77,7 @@ async def get_job(job_id: str):
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Ingestion job '{job_id}' not found."
+                detail=f"Ingestion job '{job_id}' not found.",
             )
         return job
     except HTTPException:
@@ -86,7 +85,7 @@ async def get_job(job_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get ingestion job: {e}"
+            detail=f"Failed to get ingestion job: {e}",
         )
 
 
@@ -94,9 +93,14 @@ async def get_job(job_id: str):
     "/ingestion/jobs/{job_id}/retry",
     response_model=JobResponse,
     status_code=status.HTTP_200_OK,
-    summary="Retry a failed ingestion job"
+    summary="Retry a failed ingestion job",
 )
-async def retry_job(job_id: str, process_immediately: bool = Query(True, description="Process job immediately after retry")):
+async def retry_job(
+    job_id: str,
+    process_immediately: bool = Query(
+        True, description="Process job immediately after retry"
+    ),
+):
     """
     Retry a failed ingestion job.
     Resets status to 'pending', error to NULL, and the related document status to 'uploaded'.
@@ -120,7 +124,7 @@ async def retry_job(job_id: str, process_immediately: bool = Query(True, descrip
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error during retry: {e}"
+            detail=f"Database error during retry: {e}",
         )
 
     if process_immediately:
@@ -129,13 +133,13 @@ async def retry_job(job_id: str, process_immediately: bool = Query(True, descrip
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Job retry reset succeeded, but immediate processing failed: {e}"
+                detail=f"Job retry reset succeeded, but immediate processing failed: {e}",
             )
 
     job_details = await get_job_details_by_id(job_id)
     if not job_details:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Ingestion job '{job_id}' not found after retry."
+            detail=f"Ingestion job '{job_id}' not found after retry.",
         )
     return job_details

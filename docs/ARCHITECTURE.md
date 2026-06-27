@@ -11,7 +11,7 @@ The application forms the storage and semantic retrieval layer of the agent plat
 graph TD
     %% Define actor
     User([User])
-    
+
     %% Primary User Interface
     subgraph UI ["User Interface (leadgen-api & iframe)"]
         LeadgenUI["Leadgen UI / Admin Panel<br/>(Served by leadgen-api)"]
@@ -26,7 +26,7 @@ graph TD
         Ingestion["Ingestion Orchestration<br/>(Parsing & Chunking)"]
         Search["Semantic Search Service"]
         DocsMgmt["Document & Processing Job Management"]
-        
+
         REST ---> Ingestion
         REST ---> DocsMgmt
         MCP ---> Search
@@ -53,7 +53,7 @@ graph TD
     %% Request flows
     User --->|1. Ingestion Entrypoint| LeadgenUI
     User --->|2. Assistant Search Entrypoint| Iframe
-    
+
     %% Document Ingestion Flow
     LeadgenUI --->|Upload File / Trigger Rebuild| REST
     Ingestion --->|Store Source Files| Minio
@@ -169,7 +169,7 @@ The agent gateway and web interface utilize a shared storage directory mapped in
 
 ## Authentication Flow
 
-`leadgen-api` relies on Microsoft Entra ID (MSAL) for internal admin UI security. 
+`leadgen-api` relies on Microsoft Entra ID (MSAL) for internal admin UI security.
 
 ```mermaid
 sequenceDiagram

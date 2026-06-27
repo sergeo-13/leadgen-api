@@ -16,6 +16,7 @@ from src.services.minio_service import (
 
 # ─── Chunker Service Tests ───────────────────────────────────────────────────
 
+
 def test_split_text_empty():
     """Verify split_text returns empty list for empty/None input."""
     assert split_text("") == []
@@ -56,6 +57,7 @@ def test_split_text_invalid_overlap():
 
 # ─── Embedding Service Tests ──────────────────────────────────────────────────
 
+
 def test_generate_embeddings_empty():
     """Verify generate_embeddings returns empty list for empty list input."""
     assert generate_embeddings([]) == []
@@ -74,7 +76,9 @@ def test_generate_embeddings_success():
     mock_client = MagicMock()
     mock_client.embeddings.create.return_value = mock_response
 
-    with patch("src.services.embedding_service.get_openai_client", return_value=mock_client):
+    with patch(
+        "src.services.embedding_service.get_openai_client", return_value=mock_client
+    ):
         result = generate_embeddings(["text1", "text2"], batch_size=2)
         assert result == [[0.1, 0.2], [0.3, 0.4]]
         mock_client.embeddings.create.assert_called_once()
@@ -85,13 +89,16 @@ def test_generate_embeddings_exception():
     mock_client = MagicMock()
     mock_client.embeddings.create.side_effect = Exception("API error")
 
-    with patch("src.services.embedding_service.get_openai_client", return_value=mock_client):
+    with patch(
+        "src.services.embedding_service.get_openai_client", return_value=mock_client
+    ):
         with pytest.raises(Exception) as exc:
             generate_embeddings(["text1"])
         assert "API error" in str(exc.value)
 
 
 # ─── MinIO Service Tests ──────────────────────────────────────────────────────
+
 
 def test_check_minio_bucket_exists():
     """Verify check_minio returns True when bucket exists."""
@@ -145,7 +152,7 @@ def test_download_object_success():
     """Verify download_object returns file content bytes."""
     mock_response = MagicMock()
     mock_response.read.return_value = b"file bytes"
-    
+
     mock_client = MagicMock()
     mock_client.get_object.return_value = mock_response
 

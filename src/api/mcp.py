@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 # Parse allowed hosts and origins
 allowed_hosts = [h.strip() for h in settings.MCP_ALLOWED_HOSTS.split(",") if h.strip()]
-allowed_origins = [o.strip() for o in settings.MCP_ALLOWED_ORIGINS.split(",") if o.strip()]
+allowed_origins = [
+    o.strip() for o in settings.MCP_ALLOWED_ORIGINS.split(",") if o.strip()
+]
 
 # Create FastMCP server with stateless HTTP, JSON responses, and configured DNS rebinding allowed lists
 mcp = FastMCP(
@@ -25,11 +27,13 @@ mcp = FastMCP(
         enable_dns_rebinding_protection=True,
         allowed_hosts=allowed_hosts,
         allowed_origins=allowed_origins,
-    )
+    ),
 )
 
 if settings.MCP_ENABLED and not settings.MCP_API_KEY:
-    logger.warning("SECURITY WARNING: MCP is enabled but MCP_API_KEY is empty. The MCP server is running WITHOUT authentication.")
+    logger.warning(
+        "SECURITY WARNING: MCP is enabled but MCP_API_KEY is empty. The MCP server is running WITHOUT authentication."
+    )
 
 
 @mcp.tool(
@@ -39,7 +43,7 @@ if settings.MCP_ENABLED and not settings.MCP_API_KEY:
         "Use this tool whenever the user asks about uploaded documents, cases, internal documents, "
         "services, clients, industries, capabilities, processes, or project information. "
         "Return grounded document chunks and metadata. Do not invent information when no useful results are found."
-    )
+    ),
 )
 async def search_knowledge_base(
     query: Annotated[
@@ -81,7 +85,7 @@ async def search_knowledge_base(
         industry=industry,
         geography=geography,
         use_case=use_case,
-        tags=tags or []
+        tags=tags or [],
     )
 
     try:
@@ -94,44 +98,44 @@ async def search_knowledge_base(
         logger.warning(f"Invalid input provided to search_knowledge_base: {e}")
         raise
     except Exception as e:
-        logger.error(f"Internal failure in search_knowledge_base service: {e}", exc_info=True)
+        logger.error(
+            f"Internal failure in search_knowledge_base service: {e}", exc_info=True
+        )
         # Technical failures returned as tool error, details logged server-side without leaking internals
         raise RuntimeError("An internal service error occurred. Please try again.")
 
     # Explicit JSON serialization of response structures
     results_list = []
     for r in results:
-        results_list.append({
-            "document_id": str(r.document_id),
-            "title": r.title,
-            "type": r.type,
-            "client_name": r.client_name,
-            "industry": r.industry,
-            "geography": r.geography,
-            "use_case": r.use_case,
-            "tags": list(r.tags),
-            "authors": list(r.authors),
-            "source_bucket": r.source_bucket,
-            "source_object_key": r.source_object_key,
-            "chunk_id": str(r.chunk_id),
-            "chunk_index": int(r.chunk_index),
-            "content": r.content,
-            "score": float(r.score)
-        })
+        results_list.append(
+            {
+                "document_id": str(r.document_id),
+                "title": r.title,
+                "type": r.type,
+                "client_name": r.client_name,
+                "industry": r.industry,
+                "geography": r.geography,
+                "use_case": r.use_case,
+                "tags": list(r.tags),
+                "authors": list(r.authors),
+                "source_bucket": r.source_bucket,
+                "source_object_key": r.source_object_key,
+                "chunk_id": str(r.chunk_id),
+                "chunk_index": int(r.chunk_index),
+                "content": r.content,
+                "score": float(r.score),
+            }
+        )
 
     if not results_list:
         return {
             "query": query,
             "result_count": 0,
             "results": [],
-            "message": "No relevant processed documents were found."
+            "message": "No relevant processed documents were found.",
         }
 
-    return {
-        "query": query,
-        "result_count": len(results_list),
-        "results": results_list
-    }
+    return {"query": query, "result_count": len(results_list), "results": results_list}
 
 
 class MCPAuthMiddleware:
@@ -139,6 +143,7 @@ class MCPAuthMiddleware:
     Isolated ASGI middleware to enforce Bearer token authentication
     strictly around the mounted MCP application subtree.
     """
+
     def __init__(self, app, api_key: str):
         self.app = app
         self.api_key = api_key
@@ -147,7 +152,7 @@ class MCPAuthMiddleware:
         if scope["type"] == "http":
             headers = dict(scope.get("headers", []))
             auth_header = headers.get(b"authorization", b"").decode("utf-8")
-            
+
             authenticated = False
             if not self.api_key:
                 authenticated = True
@@ -155,21 +160,25 @@ class MCPAuthMiddleware:
                 token = auth_header[7:].strip()
                 if secrets.compare_digest(token, self.api_key):
                     authenticated = True
-            
+
             if not authenticated:
-                await send({
-                    "type": "http.response.start",
-                    "status": 401,
-                    "headers": [
-                        (b"www-authenticate", b"Bearer"),
-                        (b"content-type", b"application/json"),
-                    ]
-                })
-                await send({
-                    "type": "http.response.body",
-                    "body": b'{"detail": "Unauthorized: Invalid or missing Bearer token"}',
-                    "more_body": False
-                })
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 401,
+                        "headers": [
+                            (b"www-authenticate", b"Bearer"),
+                            (b"content-type", b"application/json"),
+                        ],
+                    }
+                )
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": b'{"detail": "Unauthorized: Invalid or missing Bearer token"}',
+                        "more_body": False,
+                    }
+                )
                 return
-        
+
         await self.app(scope, receive, send)

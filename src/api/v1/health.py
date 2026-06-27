@@ -46,7 +46,9 @@ async def health_check() -> Dict[str, str]:
     # Check Hermes
     try:
         hermes_ok = await HermesClient().check_health()
-        logger.info("Hermes health check: OK" if hermes_ok else "Hermes health check: FAILED")
+        logger.info(
+            "Hermes health check: OK" if hermes_ok else "Hermes health check: FAILED"
+        )
     except Exception as e:
         logger.error(f"Hermes health check failed: {e}")
         hermes_ok = False

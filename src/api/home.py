@@ -34,12 +34,12 @@ _HOME_HTML = r"""<!DOCTYPE html>
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background-image: 
+      background-image:
         radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.05) 0px, transparent 50%);
       background-attachment: fixed;
     }
-    
+
     /* Header */
     header {
       display: flex;
@@ -102,7 +102,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
         grid-template-columns: 1fr 1fr;
       }
     }
-    
+
     .hero-text h2 {
       font-family: 'Outfit', sans-serif;
       font-size: 3rem;
@@ -205,7 +205,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
       height: 100%;
       position: relative;
     }
-    
+
     .col-docs {
       display: flex;
       flex-direction: column;
@@ -223,7 +223,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       backdrop-filter: blur(4px);
     }
-    
+
     .col-process {
       position: absolute;
       left: 50%;
@@ -249,7 +249,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
       color: #fff;
       box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
     }
-    
+
     .col-answer {
       z-index: 2;
     }
@@ -263,7 +263,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
       font-weight: 600;
       box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
     }
-    
+
     /* Lines and Particles */
     .connection-lines {
       position: absolute;
@@ -279,7 +279,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
     }
     .line-left { left: 10%; right: 50%; }
     .line-right { left: 50%; right: 10%; }
-    
+
     .particle {
       position: absolute;
       width: 6px;
@@ -291,7 +291,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
       transform: translateY(-50%);
       opacity: 0;
     }
-    
+
     /* Animations */
     @keyframes float {
       0%, 100% { transform: translateY(0); }
@@ -323,12 +323,12 @@ _HOME_HTML = r"""<!DOCTYPE html>
     .float-3 { animation: float 4s ease-in-out infinite 2s; }
     .ai-node { animation: pulse 3s ease-in-out infinite; }
     .answer-card { animation: reveal 4s ease-in-out infinite; }
-    
+
     .p1 { animation: moveRight 3s linear infinite; }
     .p2 { animation: moveRight 3s linear infinite 1s; }
     .p3 { animation: moveRight 3s linear infinite 2s; }
     .p4 { animation: moveRightAnswer 3s linear infinite 1.5s; }
-    
+
     /* Reduced motion fallback */
     @media (prefers-reduced-motion: reduce) {
       .float-1, .float-2, .float-3, .ai-node, .answer-card {
@@ -359,7 +359,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
         <p>Leadgen Assistant helps authorized teams securely access company knowledge, find relevant information, and work with an AI assistant grounded in approved business content.</p>
         <a href="{btn_url}" class="hero-cta">{btn_text}</a>
       </div>
-      
+
       <div class="animation-wrapper" aria-hidden="true">
         <div class="connection-lines">
           <div class="line line-left">
@@ -423,18 +423,17 @@ async def home_page(request: Request):
     authenticated/unauthenticated state mixups.
     """
     user = request.session.get("user")
-    
+
     if user:
         btn_text = "Open Console"
         btn_url = "/ui"
     else:
         btn_text = "Sign in with Microsoft"
         btn_url = "/login?return_to=/ui"
-        
+
     html_content = _HOME_HTML.replace("{btn_text}", html.escape(btn_text))
     html_content = html_content.replace("{btn_url}", html.escape(btn_url))
-    
+
     return HTMLResponse(
-        content=html_content,
-        headers={"Cache-Control": "private, no-store"}
+        content=html_content, headers={"Cache-Control": "private, no-store"}
     )

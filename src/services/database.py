@@ -20,7 +20,9 @@ def _normalize_jsonb(value):
         try:
             return json.loads(value)
         except json.JSONDecodeError:
-            logger.warning("Failed to parse JSONB metadata string, returning empty dict")
+            logger.warning(
+                "Failed to parse JSONB metadata string, returning empty dict"
+            )
             return {}
     return {}
 
@@ -55,9 +57,7 @@ async def check_postgres() -> bool:
 
 
 async def create_ingestion_job(
-    title: str,
-    object_key: str,
-    metadata: DocumentMetadata
+    title: str, object_key: str, metadata: DocumentMetadata
 ) -> Tuple[str, str, str]:
     """
     Insert a document and corresponding ingestion job inside a transaction.
@@ -111,7 +111,11 @@ async def create_ingestion_job(
                 metadata.file_name,
                 metadata.mime_type,
                 metadata.file_size,
-                json.dumps(metadata.metadata) if metadata.metadata is not None else '{}'
+                (
+                    json.dumps(metadata.metadata)
+                    if metadata.metadata is not None
+                    else "{}"
+                ),
             )
 
             # Insert ingestion job
@@ -127,7 +131,7 @@ async def create_ingestion_job(
                 settings.MINIO_BUCKET,
                 object_key,
                 "pending",
-                None
+                None,
             )
 
             logger.info(f"Ingestion job created: job_id={job_id}, document_id={doc_id}")
@@ -174,7 +178,7 @@ async def get_and_claim_next_pending_job() -> Optional[dict]:
                 SET status = 'processing', updated_at = NOW()
                 WHERE id = $1
                 """,
-                job["id"]
+                job["id"],
             )
 
             return {
@@ -182,7 +186,7 @@ async def get_and_claim_next_pending_job() -> Optional[dict]:
                 "document_id": str(job["document_id"]),
                 "source_bucket": job["source_bucket"],
                 "source_object_key": job["source_object_key"],
-                "status": "processing"
+                "status": "processing",
             }
     finally:
         await conn.close()
@@ -257,7 +261,9 @@ async def claim_job(job_id: str) -> None:
         await conn.close()
 
 
-async def update_job_status(job_id: str, status: str, error: Optional[str] = None) -> None:
+async def update_job_status(
+    job_id: str, status: str, error: Optional[str] = None
+) -> None:
     """
     Update the status and optional error message of an ingestion job.
 
@@ -283,14 +289,16 @@ async def update_job_status(job_id: str, status: str, error: Optional[str] = Non
             """,
             status,
             error,
-            job_id
+            job_id,
         )
         logger.info(f"Job {job_id} status changed to {status}")
     finally:
         await conn.close()
 
 
-async def insert_document_chunks(document_id: str, chunks: List[Tuple[int, str, List[float]]]) -> None:
+async def insert_document_chunks(
+    document_id: str, chunks: List[Tuple[int, str, List[float]]]
+) -> None:
     """
     Delete existing chunks for a document, and insert new chunks.
     All done within a transaction.
@@ -315,7 +323,7 @@ async def insert_document_chunks(document_id: str, chunks: List[Tuple[int, str, 
                 DELETE FROM document_chunks
                 WHERE document_id = $1::uuid
                 """,
-                document_id
+                document_id,
             )
 
             # 2. Insert new chunks
@@ -330,7 +338,7 @@ async def insert_document_chunks(document_id: str, chunks: List[Tuple[int, str, 
                     document_id,
                     index,
                     content,
-                    vector_str
+                    vector_str,
                 )
     finally:
         await conn.close()
@@ -340,7 +348,7 @@ async def search_document_chunks(
     query_embedding: List[float],
     limit: int,
     filters: Optional[DocumentSearchFilters] = None,
-    query_text: Optional[str] = None
+    query_text: Optional[str] = None,
 ) -> List[dict]:
     """
     Search document chunks by vector similarity using pgvector cosine distance,
@@ -450,7 +458,9 @@ async def search_document_chunks(
             res["document_id"] = str(res["document_id"])
             res["chunk_id"] = str(res["chunk_id"])
             res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
-            res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
+            res["authors"] = (
+                list(res["authors"]) if res.get("authors") is not None else []
+            )
             res["metadata"] = _normalize_jsonb(res.get("metadata"))
             results.append(res)
         return results
@@ -488,7 +498,9 @@ async def list_documents() -> List[dict]:
             res = dict(row)
             res["id"] = str(res["id"])
             res["tags"] = list(res["tags"]) if res.get("tags") is not None else []
-            res["authors"] = list(res["authors"]) if res.get("authors") is not None else []
+            res["authors"] = (
+                list(res["authors"]) if res.get("authors") is not None else []
+            )
             res["metadata"] = _normalize_jsonb(res.get("metadata"))
             results.append(res)
         return results
@@ -519,7 +531,7 @@ async def get_document_by_id(document_id: str) -> Optional[dict]:
             FROM documents d
             WHERE d.id = $1::uuid
             """,
-            document_id
+            document_id,
         )
         if not row:
             return None
@@ -533,7 +545,9 @@ async def get_document_by_id(document_id: str) -> Optional[dict]:
         await conn.close()
 
 
-async def update_document_metadata(document_id: str, title: str, metadata: DocumentMetadata) -> bool:
+async def update_document_metadata(
+    document_id: str, title: str, metadata: DocumentMetadata
+) -> bool:
     """
     Update document metadata fields.
     """
@@ -565,8 +579,8 @@ async def update_document_metadata(document_id: str, title: str, metadata: Docum
             metadata.description,
             metadata.source_type,
             metadata.source_url,
-            json.dumps(metadata.metadata) if metadata.metadata is not None else '{}',
-            document_id
+            json.dumps(metadata.metadata) if metadata.metadata is not None else "{}",
+            document_id,
         )
         success = result == "UPDATE 1"
         if success:
@@ -576,7 +590,13 @@ async def update_document_metadata(document_id: str, title: str, metadata: Docum
         await conn.close()
 
 
-async def update_document_source(document_id: str, source_object_key: str, file_name: str, mime_type: str, file_size: int) -> bool:
+async def update_document_source(
+    document_id: str,
+    source_object_key: str,
+    file_name: str,
+    mime_type: str,
+    file_size: int,
+) -> bool:
     """
     Update document source file reference fields (e.g. during file replacement).
     """
@@ -599,11 +619,13 @@ async def update_document_source(document_id: str, source_object_key: str, file_
             file_name,
             mime_type,
             file_size,
-            document_id
+            document_id,
         )
         success = result == "UPDATE 1"
         if success:
-            logger.info(f"Document {document_id} source file reference updated successfully.")
+            logger.info(
+                f"Document {document_id} source file reference updated successfully."
+            )
         return success
     finally:
         await conn.close()
@@ -613,7 +635,7 @@ async def list_ingestion_jobs(
     status: Optional[str] = None,
     document_id: Optional[str] = None,
     limit: int = 50,
-    offset: int = 0
+    offset: int = 0,
 ) -> List[dict]:
     """
     List ingestion jobs with optional filters and pagination.
@@ -682,7 +704,7 @@ async def get_jobs_by_document_id(document_id: str) -> List[dict]:
             WHERE document_id = $1::uuid
             ORDER BY created_at DESC
             """,
-            document_id
+            document_id,
         )
         results = []
         for row in rows:
@@ -714,7 +736,7 @@ async def get_job_details_by_id(job_id: str) -> Optional[dict]:
             FROM ingestion_jobs
             WHERE id = $1::uuid
             """,
-            job_id
+            job_id,
         )
         if not row:
             return None
@@ -745,7 +767,7 @@ async def archive_document(document_id: str) -> bool:
             SET status = 'archived', updated_at = NOW()
             WHERE id = $1::uuid
             """,
-            document_id
+            document_id,
         )
         success = result == "UPDATE 1"
         if success:
@@ -775,7 +797,7 @@ async def restore_document(document_id: str) -> bool:
             SELECT COUNT(*) FROM document_chunks
             WHERE document_id = $1::uuid AND embedding IS NOT NULL
             """,
-            document_id
+            document_id,
         )
         new_status = "processed" if chunks_count > 0 else "uploaded"
         result = await conn.execute(
@@ -785,7 +807,7 @@ async def restore_document(document_id: str) -> bool:
             WHERE id = $2::uuid
             """,
             new_status,
-            document_id
+            document_id,
         )
         success = result == "UPDATE 1"
         if success:
@@ -815,7 +837,7 @@ async def update_document_status(document_id: str, status: str) -> bool:
             WHERE id = $2::uuid
             """,
             status,
-            document_id
+            document_id,
         )
         success = result == "UPDATE 1"
         if success:
@@ -825,7 +847,9 @@ async def update_document_status(document_id: str, status: str) -> bool:
         await conn.close()
 
 
-async def create_login_transaction(state_hash: str, msal_flow: dict, return_to: str, expires_in_seconds: int) -> None:
+async def create_login_transaction(
+    state_hash: str, msal_flow: dict, return_to: str, expires_in_seconds: int
+) -> None:
     """
     Create a new login transaction and opportunistically clean up expired ones.
     """
@@ -843,7 +867,7 @@ async def create_login_transaction(state_hash: str, msal_flow: dict, return_to: 
             await conn.execute(
                 "DELETE FROM auth_login_transactions WHERE expires_at <= NOW()"
             )
-            
+
             await conn.execute(
                 """
                 INSERT INTO auth_login_transactions (state_hash, msal_flow, return_to, expires_at)
@@ -852,7 +876,7 @@ async def create_login_transaction(state_hash: str, msal_flow: dict, return_to: 
                 state_hash,
                 json.dumps(msal_flow),
                 return_to,
-                expires_in_seconds
+                expires_in_seconds,
             )
     finally:
         await conn.close()
@@ -878,10 +902,14 @@ async def consume_login_transaction(state_hash: str) -> Optional[Tuple[dict, str
             WHERE state_hash = $1 AND expires_at > NOW()
             RETURNING msal_flow, return_to
             """,
-            state_hash
+            state_hash,
         )
         if row:
-            flow_data = json.loads(row["msal_flow"]) if isinstance(row["msal_flow"], str) else row["msal_flow"]
+            flow_data = (
+                json.loads(row["msal_flow"])
+                if isinstance(row["msal_flow"], str)
+                else row["msal_flow"]
+            )
             return flow_data, row["return_to"]
         return None
     finally:
@@ -906,12 +934,14 @@ async def retry_ingestion_job(job_id: str) -> bool:
         async with conn.transaction():
             job = await conn.fetchrow(
                 "SELECT status, document_id FROM ingestion_jobs WHERE id = $1::uuid",
-                job_id
+                job_id,
             )
             if not job:
                 raise ValueError(f"Ingestion job '{job_id}' not found.")
             if job["status"] != "failed":
-                raise ValueError(f"Only failed jobs can be retried. Current status is '{job['status']}'.")
+                raise ValueError(
+                    f"Only failed jobs can be retried. Current status is '{job['status']}'."
+                )
 
             # Update job status
             await conn.execute(
@@ -920,7 +950,7 @@ async def retry_ingestion_job(job_id: str) -> bool:
                 SET status = 'pending', error = NULL, updated_at = NOW()
                 WHERE id = $1::uuid
                 """,
-                job_id
+                job_id,
             )
             logger.info(f"Job {job_id} status changed to pending")
 
@@ -932,7 +962,7 @@ async def retry_ingestion_job(job_id: str) -> bool:
                 SET status = 'uploaded', updated_at = NOW()
                 WHERE id = $1::uuid
                 """,
-                doc_id
+                doc_id,
             )
             logger.info(f"Document {doc_id} status changed to uploaded")
 

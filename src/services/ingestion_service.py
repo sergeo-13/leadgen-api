@@ -68,6 +68,7 @@ async def process_job(job_id: str) -> dict:
     try:
         # 4. Check supported file formats
         import os
+
         _, ext = os.path.splitext(source_object_key.lower())
         if ext not in SUPPORTED_EXTENSIONS:
             raise ValueError(SUPPORTED_FORMATS_ERROR)

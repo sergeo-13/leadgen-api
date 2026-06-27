@@ -92,9 +92,9 @@ This document records the architectural decisions made during the design and dev
 We needed to add a marketing/informational homepage explaining the Leadgen Assistant and depicting its knowledge flow to unauthenticated users, while allowing authenticated users to quickly jump into the console.
 
 ### Decision
-We separated the public homepage logic into a dedicated module (`src/api/home.py`) mapped to the root endpoint (`GET /`). 
-- **Separation of Concerns:** We kept `/login` purely as a functional authentication redirect form, moving all descriptive text and the knowledge-flow CSS animation to `/`. 
-- **State Handling:** The homepage conditionally renders the CTA ("Sign in with Microsoft" vs. "Open Console") by directly checking the session, without pulling or rendering internal details. 
+We separated the public homepage logic into a dedicated module (`src/api/home.py`) mapped to the root endpoint (`GET /`).
+- **Separation of Concerns:** We kept `/login` purely as a functional authentication redirect form, moving all descriptive text and the knowledge-flow CSS animation to `/`.
+- **State Handling:** The homepage conditionally renders the CTA ("Sign in with Microsoft" vs. "Open Console") by directly checking the session, without pulling or rendering internal details.
 - **Performance & Security:** We disabled caching (`Cache-Control: private, no-store`) on the root endpoint to prevent CDN or browser mis-caching of the auth states.
 - **Technical Metadata Extraction:** The raw JSON previously exposed at `/` was moved to a new `/api/v1/info` endpoint.
 

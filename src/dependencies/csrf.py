@@ -18,7 +18,7 @@ async def verify_csrf(request: Request):
     """
     if not settings.ENTRA_ENABLED:
         return
-        
+
     if request.method not in ["POST", "PUT", "PATCH", "DELETE"]:
         return
 
@@ -41,16 +41,18 @@ async def verify_csrf(request: Request):
         logger.warning("CSRF validation failed: Missing Origin and Referer headers.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Missing Origin and Referer headers for CSRF validation."
+            detail="Missing Origin and Referer headers for CSRF validation.",
         )
 
     allowed_origins = [
         o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()
     ]
-    
+
     if source_origin not in allowed_origins:
-        logger.warning(f"CSRF validation failed: Source origin '{source_origin}' not in allowed origins.")
+        logger.warning(
+            f"CSRF validation failed: Source origin '{source_origin}' not in allowed origins."
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cross-origin request rejected by CSRF policy."
+            detail="Cross-origin request rejected by CSRF policy.",
         )

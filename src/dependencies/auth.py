@@ -43,7 +43,7 @@ async def get_current_user(request: Request) -> Dict[str, Any]:
 
 
 async def verify_ingestion_api_key(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ) -> None:
     """
     Verify the internal ingestion API key.
@@ -58,8 +58,12 @@ async def verify_ingestion_api_key(
             detail="Ingestion API key not configured.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
-    if not credentials or credentials.scheme != "Bearer" or credentials.credentials != settings.INGESTION_API_KEY:
+
+    if (
+        not credentials
+        or credentials.scheme != "Bearer"
+        or credentials.credentials != settings.INGESTION_API_KEY
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid ingestion API key.",

@@ -63,7 +63,9 @@ def validate_id_token_claims(claims: Dict[str, Any]) -> None:
     # 5. aud == ENTRA_CLIENT_ID
     aud = claims.get("aud")
     if aud != settings.ENTRA_CLIENT_ID:
-        raise ValueError(f"Invalid 'aud' claim: expected '{settings.ENTRA_CLIENT_ID}', got '{aud}'")
+        raise ValueError(
+            f"Invalid 'aud' claim: expected '{settings.ENTRA_CLIENT_ID}', got '{aud}'"
+        )
 
     current_time = time.time()
     clock_skew = settings.AUTH_TOKEN_CLOCK_SKEW_SECONDS

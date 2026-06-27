@@ -214,11 +214,8 @@ class ReingestRequest(BaseModel):
             "chunking_changed",
             "embedding_model_changed",
             "failed_partial_ingestion",
-            "metadata_in_embedding_changed"
+            "metadata_in_embedding_changed",
         }
         if v not in allowed:
-            raise ValueError(
-                f"Reason must be one of: {', '.join(sorted(allowed))}"
-            )
+            raise ValueError(f"Reason must be one of: {', '.join(sorted(allowed))}")
         return v
-

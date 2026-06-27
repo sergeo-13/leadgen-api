@@ -46,6 +46,7 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
+
 def _sanitize_object_key(filename: str) -> str:
     """
     Build a safe MinIO object key from an uploaded filename.
@@ -56,11 +57,11 @@ def _sanitize_object_key(filename: str) -> str:
     - Collapses consecutive underscores.
     - Preserves the .pdf extension.
     """
-    basename = os.path.basename(filename)          # strip path components
+    basename = os.path.basename(filename)  # strip path components
     name, ext = os.path.splitext(basename)
     name = name.lower()
-    name = re.sub(r"[^\w\-]", "_", name)           # keep word chars and hyphens
-    name = re.sub(r"_+", "_", name).strip("_")     # collapse/strip underscores
+    name = re.sub(r"[^\w\-]", "_", name)  # keep word chars and hyphens
+    name = re.sub(r"_+", "_", name).strip("_")  # collapse/strip underscores
     ext = ext.lower()
     name = name or "upload"
     return f"{name}{ext}"
@@ -74,12 +75,13 @@ def _unique_object_key(base_key: str) -> str:
 
 # ─── existing endpoint: JSON ingest ──────────────────────────────────────────
 
+
 @router.post(
     "/documents/ingest",
     response_model=DocumentIngestResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Ingest a new document (file must already be in MinIO)",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def ingest_document(payload: DocumentIngestRequest):
     """
@@ -119,12 +121,13 @@ async def ingest_document(payload: DocumentIngestRequest):
 
 # ─── new endpoint: multipart upload ──────────────────────────────────────────
 
+
 @router.post(
     "/documents/upload",
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload a source file and optionally process it immediately",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def upload_document(
     file: UploadFile,
@@ -161,7 +164,7 @@ async def upload_document(
     if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=SUPPORTED_FORMATS_ERROR
+            detail=SUPPORTED_FORMATS_ERROR,
         )
 
     # 3. Build a safe base key from the original filename
@@ -200,7 +203,7 @@ async def upload_document(
         ".markdown": "text/markdown",
         ".csv": "text/csv",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }
     inferred_mime = mime_mappings.get(ext, "application/octet-stream")
     mime_type = file.content_type or inferred_mime
@@ -208,7 +211,9 @@ async def upload_document(
     # 6. Upload to MinIO
     try:
         upload_object(settings.MINIO_BUCKET, object_key, file_bytes, mime_type)
-        logger.info(f"Document uploaded successfully: {object_key} (size={file_size} bytes)")
+        logger.info(
+            f"Document uploaded successfully: {object_key} (size={file_size} bytes)"
+        )
     except Exception as e:
         logger.error(f"MinIO upload failed for '{object_key}': {e}")
         raise HTTPException(
@@ -226,7 +231,7 @@ async def upload_document(
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid JSON metadata: {e}"
+                detail=f"Invalid JSON metadata: {e}",
             )
 
     tags_list = [t.strip() for t in tags.split(",") if t.strip()]
@@ -246,7 +251,7 @@ async def upload_document(
         file_name=base_key,
         mime_type=mime_type,
         file_size=file_size,
-        metadata=custom_metadata_dict
+        metadata=custom_metadata_dict,
     )
 
     # 8. Create document and ingestion job rows
@@ -273,7 +278,7 @@ async def upload_document(
                 status=result["status"],
                 source_object_key=object_key,
                 source_bucket=settings.MINIO_BUCKET,
-                chunks_created=result.get("chunks_created")
+                chunks_created=result.get("chunks_created"),
             )
         except ValueError as e:
             raise HTTPException(
@@ -292,18 +297,19 @@ async def upload_document(
         job_id=job_id,
         status="uploaded",
         source_object_key=object_key,
-        source_bucket=settings.MINIO_BUCKET
+        source_bucket=settings.MINIO_BUCKET,
     )
 
 
 # ─── existing endpoint: semantic search ──────────────────────────────────────
+
 
 @router.post(
     "/documents/search",
     response_model=DocumentSearchResponse,
     status_code=status.HTTP_200_OK,
     summary="Search document chunks semantically",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def search_documents(payload: DocumentSearchRequest):
     """
@@ -335,9 +341,7 @@ async def search_documents(payload: DocumentSearchRequest):
 
 
 @router.get(
-    "/documents",
-    response_model=List[DocumentResponse],
-    summary="List all documents"
+    "/documents", response_model=List[DocumentResponse], summary="List all documents"
 )
 async def get_documents():
     """Retrieve all documents with chunk counts."""
@@ -346,14 +350,14 @@ async def get_documents():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list documents: {e}"
+            detail=f"Failed to list documents: {e}",
         )
 
 
 @router.get(
     "/documents/{document_id}",
     response_model=DocumentResponse,
-    summary="Get document details"
+    summary="Get document details",
 )
 async def get_document(document_id: str):
     """Retrieve details for a specific document."""
@@ -362,7 +366,7 @@ async def get_document(document_id: str):
         if not doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found."
+                detail=f"Document '{document_id}' not found.",
             )
         return doc
     except HTTPException:
@@ -370,14 +374,14 @@ async def get_document(document_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get document: {e}"
+            detail=f"Failed to get document: {e}",
         )
 
 
 @router.patch(
     "/documents/{document_id}",
     summary="Update document metadata",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def patch_document(document_id: str, title: str, metadata: DocumentMetadata):
     """
@@ -389,22 +393,25 @@ async def patch_document(document_id: str, title: str, metadata: DocumentMetadat
         if not doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found."
+                detail=f"Document '{document_id}' not found.",
             )
 
         success = await update_document_metadata(document_id, title, metadata)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update document metadata in database."
+                detail="Failed to update document metadata in database.",
             )
-        return {"status": "success", "message": "Document metadata updated successfully."}
+        return {
+            "status": "success",
+            "message": "Document metadata updated successfully.",
+        }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update metadata: {e}"
+            detail=f"Failed to update metadata: {e}",
         )
 
 
@@ -413,7 +420,7 @@ async def patch_document(document_id: str, title: str, metadata: DocumentMetadat
     response_model=DocumentIngestResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Rebuild Search Index",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def reingest_document(document_id: str, payload: ReingestRequest):
     """
@@ -424,13 +431,13 @@ async def reingest_document(document_id: str, payload: ReingestRequest):
     if not doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document '{document_id}' not found."
+            detail=f"Document '{document_id}' not found.",
         )
 
     if doc["status"] == "archived":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot rebuild search index for an archived document. Please restore the document first."
+            detail="Cannot rebuild search index for an archived document. Please restore the document first.",
         )
 
     try:
@@ -451,32 +458,28 @@ async def reingest_document(document_id: str, payload: ReingestRequest):
             file_name=doc["file_name"],
             mime_type=doc["mime_type"],
             file_size=doc["file_size"],
-            metadata=doc["metadata"]
+            metadata=doc["metadata"],
         )
 
         doc_id, job_id, job_status = await create_ingestion_job(
             title=doc["title"],
             object_key=doc["source_object_key"],
-            metadata=metadata_obj
+            metadata=metadata_obj,
         )
 
         if payload.process_immediately:
             result = await process_job(job_id)
             return DocumentIngestResponse(
-                document_id=doc_id,
-                job_id=job_id,
-                status=result["status"]
+                document_id=doc_id, job_id=job_id, status=result["status"]
             )
 
         return DocumentIngestResponse(
-            document_id=doc_id,
-            job_id=job_id,
-            status=job_status
+            document_id=doc_id, job_id=job_id, status=job_status
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to trigger rebuild: {e}"
+            detail=f"Failed to trigger rebuild: {e}",
         )
 
 
@@ -485,12 +488,10 @@ async def reingest_document(document_id: str, payload: ReingestRequest):
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Replace document file and rebuild search index",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def replace_document_file(
-    document_id: str,
-    file: UploadFile,
-    process_immediately: bool = Form(default=True)
+    document_id: str, file: UploadFile, process_immediately: bool = Form(default=True)
 ):
     """
     Upload a new file version key, update references, and rebuild search index.
@@ -501,20 +502,19 @@ async def replace_document_file(
     if not doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document '{document_id}' not found."
+            detail=f"Document '{document_id}' not found.",
         )
 
     if not file or not file.filename:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No file provided."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No file provided."
         )
 
     _, ext = os.path.splitext(file.filename.lower())
     if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=SUPPORTED_FORMATS_ERROR
+            detail=SUPPORTED_FORMATS_ERROR,
         )
 
     # Build unique versioned key: documents/{document_id}/versions/{timestamp}_{safe_filename}
@@ -527,7 +527,7 @@ async def replace_document_file(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to read uploaded file."
+            detail="Failed to read uploaded file.",
         )
 
     file_size = len(file_bytes)
@@ -538,7 +538,7 @@ async def replace_document_file(
         ".markdown": "text/markdown",
         ".csv": "text/csv",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }
     inferred_mime = mime_mappings.get(ext, "application/octet-stream")
     mime_type = file.content_type or inferred_mime
@@ -551,7 +551,7 @@ async def replace_document_file(
         logger.error(f"MinIO upload failed during replace file: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload new version to storage."
+            detail="Failed to upload new version to storage.",
         )
 
     # Update DB references. If this fails, log the orphan key.
@@ -561,7 +561,7 @@ async def replace_document_file(
             source_object_key=new_object_key,
             file_name=safe_filename,
             mime_type=mime_type,
-            file_size=file_size
+            file_size=file_size,
         )
         if not success:
             raise Exception("Database update returned unsuccessful status.")
@@ -572,7 +572,7 @@ async def replace_document_file(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="File uploaded but database reference update failed. Check logs."
+            detail="File uploaded but database reference update failed. Check logs.",
         )
 
     # Trigger Rebuild Search Index
@@ -582,7 +582,7 @@ async def replace_document_file(
         if not doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found after replace."
+                detail=f"Document '{document_id}' not found after replace.",
             )
         tags_list = doc["tags"]
         authors_list = doc["authors"]
@@ -600,13 +600,11 @@ async def replace_document_file(
             file_name=doc["file_name"],
             mime_type=doc["mime_type"],
             file_size=doc["file_size"],
-            metadata=doc["metadata"]
+            metadata=doc["metadata"],
         )
 
         doc_id, job_id, job_status = await create_ingestion_job(
-            title=doc["title"],
-            object_key=new_object_key,
-            metadata=metadata_obj
+            title=doc["title"], object_key=new_object_key, metadata=metadata_obj
         )
 
         if process_immediately:
@@ -617,7 +615,7 @@ async def replace_document_file(
                 status=result["status"],
                 source_object_key=new_object_key,
                 source_bucket=settings.MINIO_BUCKET,
-                chunks_created=result.get("chunks_created")
+                chunks_created=result.get("chunks_created"),
             )
 
         return DocumentUploadResponse(
@@ -625,19 +623,19 @@ async def replace_document_file(
             job_id=job_id,
             status=job_status,
             source_object_key=new_object_key,
-            source_bucket=settings.MINIO_BUCKET
+            source_bucket=settings.MINIO_BUCKET,
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Rebuild after file replacement failed: {e}"
+            detail=f"Rebuild after file replacement failed: {e}",
         )
 
 
 @router.post(
     "/documents/{document_id}/archive",
     summary="Archive document",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def archive_doc(document_id: str):
     """Soft-delete/archive document. Sets status to 'archived'."""
@@ -646,28 +644,31 @@ async def archive_doc(document_id: str):
         if not doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found."
+                detail=f"Document '{document_id}' not found.",
             )
         success = await archive_document(document_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to archive document."
+                detail="Failed to archive document.",
             )
-        return {"status": "success", "message": f"Document '{document_id}' archived successfully."}
+        return {
+            "status": "success",
+            "message": f"Document '{document_id}' archived successfully.",
+        }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to archive document: {e}"
+            detail=f"Failed to archive document: {e}",
         )
 
 
 @router.post(
     "/documents/{document_id}/restore",
     summary="Restore document",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def restore_doc(document_id: str):
     """Restore document. If chunks are present, sets status to 'processed'; else 'uploaded'."""
@@ -676,39 +677,39 @@ async def restore_doc(document_id: str):
         if not doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found."
+                detail=f"Document '{document_id}' not found.",
             )
         success = await restore_document(document_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to restore document."
+                detail="Failed to restore document.",
             )
         # Fetch updated status to return
         updated_doc = await get_document_by_id(document_id)
         if not updated_doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found after restore."
+                detail=f"Document '{document_id}' not found after restore.",
             )
         return {
             "status": "success",
             "message": f"Document '{document_id}' restored successfully.",
-            "document_status": updated_doc["status"]
+            "document_status": updated_doc["status"],
         }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to restore document: {e}"
+            detail=f"Failed to restore document: {e}",
         )
 
 
 @router.get(
     "/documents/{document_id}/jobs",
     response_model=List[JobResponse],
-    summary="Get jobs associated with a document"
+    summary="Get jobs associated with a document",
 )
 async def get_document_jobs(document_id: str):
     """Retrieve all ingestion jobs associated with the document."""
@@ -717,7 +718,7 @@ async def get_document_jobs(document_id: str):
         if not doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{document_id}' not found."
+                detail=f"Document '{document_id}' not found.",
             )
         return await get_jobs_by_document_id(document_id)
     except HTTPException:
@@ -725,5 +726,5 @@ async def get_document_jobs(document_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get jobs: {e}"
+            detail=f"Failed to get jobs: {e}",
         )

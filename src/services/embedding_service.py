@@ -33,10 +33,11 @@ def generate_embeddings(texts: list[str], batch_size: int = 32) -> list[list[flo
     for i in range(0, len(texts), batch_size):
         batch = texts[i : i + batch_size]
         try:
-            logger.info(f"Generating embeddings for batch {i // batch_size + 1} (size={len(batch)})")
+            logger.info(
+                f"Generating embeddings for batch {i // batch_size + 1} (size={len(batch)})"
+            )
             response = client.embeddings.create(
-                model=settings.EMBEDDING_MODEL,
-                input=batch
+                model=settings.EMBEDDING_MODEL, input=batch
             )
             # Extracted embeddings in original order
             batch_embeddings = [item.embedding for item in response.data]

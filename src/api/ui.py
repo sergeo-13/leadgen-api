@@ -39,7 +39,7 @@ _LOGIN_HTML = r"""<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
-      background-image: 
+      background-image:
         radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.05) 0px, transparent 50%);
       background-attachment: fixed;
@@ -65,8 +65,8 @@ _LOGIN_HTML = r"""<!DOCTYPE html>
       letter-spacing: -0.02em;
       margin-bottom: 0.5rem;
     }
-    .brand p { 
-      color: var(--muted); 
+    .brand p {
+      color: var(--muted);
       font-size: 0.95rem;
       margin-bottom: 2rem;
     }
@@ -189,7 +189,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       color: var(--text);
       min-height: 100vh;
       padding: 2.5rem 1.5rem 4rem;
-      background-image: 
+      background-image:
         radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.05) 0px, transparent 50%);
       background-attachment: fixed;
@@ -216,10 +216,10 @@ _UI_HTML = r"""<!DOCTYPE html>
       background-clip: text;
       letter-spacing: -0.02em;
     }
-    header .brand p { 
-      color: var(--muted); 
-      font-size: 0.95rem; 
-      margin-top: 0.25rem; 
+    header .brand p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
     }
 
     /* ── User Profile ── */
@@ -287,12 +287,12 @@ _UI_HTML = r"""<!DOCTYPE html>
     }
 
     /* ── Layout ── */
-    .wrap { 
-      max-width: 1200px; 
-      margin: 0 auto; 
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 2rem; 
+      gap: 2rem;
     }
 
     @media (min-width: 1024px) {
@@ -493,8 +493,8 @@ _UI_HTML = r"""<!DOCTYPE html>
     input[type="number"]:focus,
     input[type="file"]:focus,
     textarea:focus,
-    select:focus { 
-      border-color: var(--accent); 
+    select:focus {
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
@@ -505,18 +505,18 @@ _UI_HTML = r"""<!DOCTYPE html>
 
     /* ── Checkbox ── */
     .cbrow { display: flex; align-items: center; gap: 0.6rem; margin: 0.8rem 0; }
-    .cbrow input[type="checkbox"] { 
-      width: 16px; height: 16px; 
-      accent-color: var(--accent); 
-      cursor: pointer; 
-      flex-shrink: 0; 
+    .cbrow input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
     }
-    .cbrow label { 
-      text-transform: none; 
-      letter-spacing: 0; 
-      font-size: 0.88rem; 
-      color: var(--text); 
-      cursor: pointer; 
+    .cbrow label {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 0.88rem;
+      color: var(--text);
+      cursor: pointer;
     }
 
     /* ── Buttons ── */
@@ -614,7 +614,7 @@ _UI_HTML = r"""<!DOCTYPE html>
     .chunk-meta  { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
     .chunk-meta span { font-size: 0.78rem; color: var(--muted); }
     .chunk-meta strong { color: var(--text); }
-    
+
     .badge-score {
       background: var(--accent-glow);
       color: var(--accent-h);
@@ -940,7 +940,7 @@ _UI_HTML = r"""<!DOCTYPE html>
           <span>📂 Documents Directory</span>
           <button class="btn btn-secondary btn-xs" onclick="loadDocuments()">↻ Refresh</button>
         </div>
-        
+
         <!-- Inline error banner for document loading failures -->
         <div id="directory-error-banner" style="display: none; margin: 1rem 1.8rem 0; padding: 0.8rem 1.2rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; color: var(--danger); font-size: 0.88rem; align-items: center; justify-content: space-between;">
           <span style="font-weight: 500;">Failed to load documents directory.</span>
@@ -969,7 +969,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       <!-- ════ SEMANTIC SEARCH ════ -->
       <div class="card span-all">
         <div class="card-heading">🔍 Semantic Search</div>
-        
+
         <!-- Search Exclusion Notice -->
         <div class="warning-banner">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1048,9 +1048,9 @@ _UI_HTML = r"""<!DOCTYPE html>
         <h2 id="modalTitle">Edit Document</h2>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
-      
+
       <div class="modal-body">
-        
+
         <!-- Action Notification Alert -->
         <div class="result-alert" id="modalAlert"></div>
 
@@ -1078,9 +1078,9 @@ _UI_HTML = r"""<!DOCTYPE html>
         </div>
 
         <form id="modalForm" novalidate>
-          
+
           <div class="g2">
-            
+
             <div class="field full" id="f-file-container">
               <label for="f-file">Source File *</label>
               <input type="file" id="f-file" accept=".pdf,.txt,.md,.markdown,.csv,.docx,.xlsx" />
@@ -1328,7 +1328,7 @@ _UI_HTML = r"""<!DOCTYPE html>
     function renderDocuments() {
       const tbody = document.getElementById('documentsTableBody');
       tbody.innerHTML = '';
-      
+
       if (!allDocuments.length) {
         tbody.innerHTML = `<tr><td colspan="6" class="empty">No documents found. Upload one to get started!</td></tr>`;
         return;
@@ -1337,7 +1337,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       allDocuments.forEach(doc => {
         const tr = document.createElement('tr');
         const isSearchable = doc.status === 'processed';
-        
+
         tr.innerHTML = `
           <td>
             <div style="font-weight:600; color:var(--text); font-size:0.92rem;">${esc(doc.title)}</div>
@@ -1376,7 +1376,7 @@ _UI_HTML = r"""<!DOCTYPE html>
     function openCreateModal() {
       currentDocId = null;
       document.getElementById('modalTitle').textContent = 'Upload Document';
-      
+
       // Setup elements visibility
       document.getElementById('modalReadonlyGrid').style.display = 'none';
       document.getElementById('f-file-container').style.display = 'block';
@@ -1386,7 +1386,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       document.getElementById('btnArchive').style.display = 'none';
       document.getElementById('btnRebuild').style.display = 'none';
       document.getElementById('rebuild-helper').style.display = 'none';
-      
+
       document.getElementById('submit-btn-txt').textContent = 'Upload & Process';
 
       // Clear form
@@ -1404,7 +1404,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       if (!doc) return;
 
       document.getElementById('modalTitle').textContent = 'Edit Document Metadata';
-      
+
       // Setup elements visibility
       document.getElementById('modalReadonlyGrid').style.display = 'grid';
       document.getElementById('f-file-container').style.display = 'none';
@@ -1414,14 +1414,14 @@ _UI_HTML = r"""<!DOCTYPE html>
       document.getElementById('btnArchive').style.display = 'inline-flex';
       document.getElementById('btnRebuild').style.display = 'inline-flex';
       document.getElementById('rebuild-helper').style.display = 'block';
-      
+
       document.getElementById('submit-btn-txt').textContent = 'Save Metadata';
 
       // Fill read-only specs
       document.getElementById('r-id').textContent = doc.id;
       document.getElementById('r-key').textContent = doc.source_object_key;
       document.getElementById('r-chunks').textContent = doc.chunks_count;
-      
+
       const rStatus = document.getElementById('r-status');
       rStatus.className = `badge-status ${doc.status}`;
       rStatus.textContent = doc.status;
@@ -1628,7 +1628,7 @@ _UI_HTML = r"""<!DOCTYPE html>
 
       const isArchived = doc.status === 'archived';
       const action = isArchived ? 'restore' : 'archive';
-      
+
       if (!isArchived) {
         const confirmed = await showConfirmDialog({
           title: 'Archive document?',
@@ -1639,7 +1639,7 @@ _UI_HTML = r"""<!DOCTYPE html>
         });
         if (!confirmed) return;
       }
-      
+
       try {
         const resp = await fetch(`/api/v1/documents/${currentDocId}/${action}`, { method: 'POST' });
         const data = await resp.json();
@@ -1657,7 +1657,7 @@ _UI_HTML = r"""<!DOCTYPE html>
     // ── Rebuild Search Index ──
     async function triggerRebuild() {
       if (!currentDocId) return;
-      
+
       const confirmed = await showConfirmDialog({
         title: 'Rebuild search index?',
         message: 'This will delete current chunks, re-read the stored source file, recreate chunks, and regenerate embeddings. Metadata changes do not require this.',
@@ -1820,7 +1820,7 @@ _UI_HTML = r"""<!DOCTYPE html>
       const btn = document.getElementById('s-btn');
       const spin = document.getElementById('s-spin');
       const txt = document.getElementById('s-btn-txt');
-      
+
       btn.disabled = true;
       spin.style.display = 'block';
       txt.textContent = 'Searching...';
@@ -1943,6 +1943,7 @@ import html
 
 from src.dependencies.auth import get_optional_user
 
+
 def get_initials(name: str) -> str:
     """Generate safe initials from a display name."""
     if not name:
@@ -1952,23 +1953,24 @@ def get_initials(name: str) -> str:
         return (parts[0][0] + parts[-1][0]).upper()
     return name[:2].upper()
 
+
 @router.get("/ui", response_class=HTMLResponse, include_in_schema=False)
 async def admin_ui(request: Request, response: Response):
     """Internal admin UI — document management dashboard."""
     user = await get_optional_user(request)
     if not user:
         return RedirectResponse(url="/login?return_to=/ui", status_code=303)
-        
+
     name = user.get("name")
     preferred_username = user.get("preferred_username")
-    
+
     display_name = name if name else preferred_username
     display_email = preferred_username if name and preferred_username else ""
-    
+
     safe_name = html.escape(display_name or "")
     safe_email = html.escape(display_email or "")
     safe_initials = html.escape(get_initials(str(display_name or "")))
-    
+
     user_html = f"""
     <div class="user-profile">
       <div class="user-avatar" title="{safe_name}">{safe_initials}</div>
@@ -1976,19 +1978,21 @@ async def admin_ui(request: Request, response: Response):
         <div class="user-name" title="{safe_name}">{safe_name}</div>
     """
     if safe_email:
-        user_html += f'        <div class="user-email" title="{safe_email}">{safe_email}</div>\n'
-        
+        user_html += (
+            f'        <div class="user-email" title="{safe_email}">{safe_email}</div>\n'
+        )
+
     user_html += """      </div>
       <form method="post" action="/auth/logout" style="margin: 0; padding: 0; display: flex;">
         <button type="submit" class="btn-signout" aria-label="Sign out">Sign out</button>
       </form>
     </div>
     """
-        
+
     escaped_url_json = json.dumps(settings.HERMES_WEBUI_URL)
     html_content = _UI_HTML.replace("{hermes_webui_url_json}", escaped_url_json)
     html_content = html_content.replace("{user_profile_html}", user_html)
-    
+
     response = HTMLResponse(content=html_content, status_code=200)
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -2000,34 +2004,38 @@ async def login_page(
     response: Response,
     return_to: Optional[str] = None,
     error: Optional[str] = None,
-    logged_out: Optional[str] = None
+    logged_out: Optional[str] = None,
 ):
     """Public login page."""
     # Check if already authenticated
     user = await get_optional_user(request)
     if user:
         return RedirectResponse(url="/ui", status_code=303)
-        
+
     message_html = ""
     if logged_out == "1":
-        message_html = '<div class="message success">You have been signed out successfully.</div>'
+        message_html = (
+            '<div class="message success">You have been signed out successfully.</div>'
+        )
     elif error:
         error_msgs = {
             "access_denied": "Authentication was cancelled or administrator approval is required. Please try again or contact your administrator.",
             "session_expired": "Your login session expired. Please try again.",
-            "auth_failed": "An error occurred during authentication. Please try again."
+            "auth_failed": "An error occurred during authentication. Please try again.",
         }
-        safe_msg = error_msgs.get(error, "An error occurred during authentication. Please try again.")
+        safe_msg = error_msgs.get(
+            error, "An error occurred during authentication. Please try again."
+        )
         message_html = f'<div class="message error">{safe_msg}</div>'
 
     # Build auth URL
     auth_url = "/auth/login"
     if return_to:
         auth_url += f"?return_to={urllib.parse.quote(return_to, safe='')}"
-        
+
     html_content = _LOGIN_HTML.replace("{message_html}", message_html)
     html_content = html_content.replace("{auth_url}", html.escape(auth_url))
-    
+
     response = HTMLResponse(content=html_content, status_code=200)
     response.headers["Cache-Control"] = "no-store"
     return response

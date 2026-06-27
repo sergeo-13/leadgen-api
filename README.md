@@ -91,7 +91,7 @@ The system architecture separates the local interface and data layer of the `lea
 graph TD
     %% Define actor
     User([User])
-    
+
     %% Primary User Interface
     subgraph UI ["User Interface (leadgen-api & iframe)"]
         LeadgenUI["Leadgen UI / Admin Panel<br/>(Served by leadgen-api)"]
@@ -106,7 +106,7 @@ graph TD
         Ingestion["Ingestion Orchestration<br/>(Parsing & Chunking)"]
         Search["Semantic Search Service"]
         DocsMgmt["Document & Processing Job Management"]
-        
+
         REST ---> Ingestion
         REST ---> DocsMgmt
         MCP ---> Search
@@ -133,7 +133,7 @@ graph TD
     %% Request flows
     User --->|1. Ingestion Entrypoint| LeadgenUI
     User --->|2. Assistant Search Entrypoint| Iframe
-    
+
     %% Document Ingestion Flow
     LeadgenUI --->|Upload File / Trigger Rebuild| REST
     Ingestion --->|Store Source Files| Minio

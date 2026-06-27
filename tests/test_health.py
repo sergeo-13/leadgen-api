@@ -21,6 +21,3 @@ def test_health_endpoint(client):
         assert data["postgres"] in ["ok", "error"]
         assert data["minio"] in ["ok", "error"]
         assert data["hermes"] in ["ok", "error"]
-
-
-

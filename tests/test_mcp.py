@@ -65,7 +65,9 @@ def run_app_in_background(app, host="127.0.0.1"):
 
     if not started:
         if getattr(server.server, "should_exit", False):
-            raise RuntimeError("Uvicorn failed to start (lifespan or server initialization failed).")
+            raise RuntimeError(
+                "Uvicorn failed to start (lifespan or server initialization failed)."
+            )
         raise RuntimeError("Uvicorn does not start")
 
     try:
@@ -139,7 +141,7 @@ def test_mcp_lifespan_failure():
         yield
 
     broken_app = Starlette(lifespan=broken_lifespan)
-    
+
     with pytest.raises(RuntimeError, match="Uvicorn failed to start"):
         with run_app_in_background(broken_app):
             pass
@@ -169,8 +171,10 @@ async def test_mcp_protocol_flow(monkeypatch):
     monkeypatch.setattr(src.config.settings, "MCP_ENABLED", True)
     monkeypatch.setattr(src.config.settings, "MCP_API_KEY", "test-secret-key")
     # Add a wildcard port host so dns rebinding doesn't block the dynamic port
-    monkeypatch.setattr(src.config.settings, "MCP_ALLOWED_HOSTS", "127.0.0.1:*,localhost:*")
-    
+    monkeypatch.setattr(
+        src.config.settings, "MCP_ALLOWED_HOSTS", "127.0.0.1:*,localhost:*"
+    )
+
     importlib.reload(src.api.mcp)
     importlib.reload(src.main)
 
@@ -190,11 +194,13 @@ async def test_mcp_protocol_flow(monkeypatch):
             chunk_id="chunk-123",
             chunk_index=0,
             content="This is matching test content.",
-            score=0.95
+            score=0.95,
         )
     ]
 
-    with patch("src.api.mcp.perform_semantic_search", new_callable=AsyncMock) as mock_search:
+    with patch(
+        "src.api.mcp.perform_semantic_search", new_callable=AsyncMock
+    ) as mock_search:
         mock_search.return_value = mock_results
 
         with run_app_in_background(src.main.app) as port:
@@ -214,10 +220,12 @@ async def test_mcp_protocol_flow(monkeypatch):
                     assert "search_knowledge_base" in tool_names
 
                     # Verify limits validation in schema
-                    search_tool = next(t for t in tools.tools if t.name == "search_knowledge_base")
+                    search_tool = next(
+                        t for t in tools.tools if t.name == "search_knowledge_base"
+                    )
                     properties = search_tool.inputSchema.get("properties", {})
                     assert "limit" in properties
-                    
+
                     limit_prop = properties["limit"]
                     # Depending on how FastMCP/pydantic translates ge/le, check minimum/maximum
                     minimum = limit_prop.get("minimum", limit_prop.get("ge"))
@@ -227,11 +235,10 @@ async def test_mcp_protocol_flow(monkeypatch):
 
                     # Successful search call
                     result = await session.call_tool(
-                        "search_knowledge_base",
-                        {"query": "test query", "limit": 5}
+                        "search_knowledge_base", {"query": "test query", "limit": 5}
                     )
                     assert result.isError is False
-                    
+
                     response_data = json.loads(result.content[0].text)
                     assert response_data["query"] == "test query"
                     assert response_data["result_count"] == 1
@@ -241,16 +248,17 @@ async def test_mcp_protocol_flow(monkeypatch):
                     # Schema limit validation bounds checks (should error out)
                     # Note: FastMCP will validate this input schema. Let's call with invalid limit
                     result_invalid_limit = await session.call_tool(
-                        "search_knowledge_base",
-                        {"query": "test query", "limit": 25}
+                        "search_knowledge_base", {"query": "test query", "limit": 25}
                     )
                     assert result_invalid_limit.isError is True
-                    assert "limit" in result_invalid_limit.content[0].text.lower() or "validation" in result_invalid_limit.content[0].text.lower()
+                    assert (
+                        "limit" in result_invalid_limit.content[0].text.lower()
+                        or "validation" in result_invalid_limit.content[0].text.lower()
+                    )
 
                     # Schema query validation bounds checks (empty query)
                     result_empty_query = await session.call_tool(
-                        "search_knowledge_base",
-                        {"query": "", "limit": 5}
+                        "search_knowledge_base", {"query": "", "limit": 5}
                     )
                     assert result_empty_query.isError is True
 
@@ -258,7 +266,7 @@ async def test_mcp_protocol_flow(monkeypatch):
                     mock_search.return_value = []
                     result_empty = await session.call_tool(
                         "search_knowledge_base",
-                        {"query": "unmatched search term", "limit": 5}
+                        {"query": "unmatched search term", "limit": 5},
                     )
                     assert result_empty.isError is False
                     response_empty = json.loads(result_empty.content[0].text)
@@ -270,15 +278,22 @@ async def test_mcp_protocol_flow(monkeypatch):
                     mock_search.side_effect = Exception("Postgres connection timeout")
                     result_fail = await session.call_tool(
                         "search_knowledge_base",
-                        {"query": "trigger failure", "limit": 5}
+                        {"query": "trigger failure", "limit": 5},
                     )
                     assert result_fail.isError is True
-                    assert "internal" in result_fail.content[0].text.lower() or "postgres" in result_fail.content[0].text.lower()
+                    assert (
+                        "internal" in result_fail.content[0].text.lower()
+                        or "postgres" in result_fail.content[0].text.lower()
+                    )
 
     # Re-import to clean up settings
     monkeypatch.setattr(src.config.settings, "MCP_ENABLED", True)
     monkeypatch.setattr(src.config.settings, "MCP_API_KEY", "")
-    monkeypatch.setattr(src.config.settings, "MCP_ALLOWED_HOSTS", "localhost:8000,127.0.0.1:8000,leadgen-api:8000,leadgen-api-dev:8000,localhost:*,127.0.0.1:*")
+    monkeypatch.setattr(
+        src.config.settings,
+        "MCP_ALLOWED_HOSTS",
+        "localhost:8000,127.0.0.1:8000,leadgen-api:8000,leadgen-api-dev:8000,localhost:*,127.0.0.1:*",
+    )
     importlib.reload(src.api.mcp)
     importlib.reload(src.main)
 
@@ -296,19 +311,25 @@ def test_mcp_dns_rebinding_and_routing(monkeypatch):
         assert res_allowed.status_code == 401
 
         # 2. Unlisted Host is rejected with 421 (when authorized)
-        res_unlisted = client.post("/mcp/", headers={
-            "Host": "evil-host.com",
-            "Authorization": "Bearer mcp-test-key",
-            "Content-Type": "application/json",
-        })
+        res_unlisted = client.post(
+            "/mcp/",
+            headers={
+                "Host": "evil-host.com",
+                "Authorization": "Bearer mcp-test-key",
+                "Content-Type": "application/json",
+            },
+        )
         assert res_unlisted.status_code == 421
 
         # 3. Authentication still runs correctly with allowed host
-        res_auth_ok = client.post("/mcp/", headers={
-            "Host": "allowed-host.com",
-            "Authorization": "Bearer mcp-test-key",
-            "Content-Type": "application/json"
-        })
+        res_auth_ok = client.post(
+            "/mcp/",
+            headers={
+                "Host": "allowed-host.com",
+                "Authorization": "Bearer mcp-test-key",
+                "Content-Type": "application/json",
+            },
+        )
         # Since it is Streamable HTTP, a POST with empty body is rejected as invalid content or bad request, but got past DNS & Auth checks
         assert res_auth_ok.status_code in (400, 405, 406, 200)
 
@@ -322,7 +343,10 @@ def test_mcp_dns_rebinding_and_routing(monkeypatch):
     # Restore default settings
     monkeypatch.setattr(src.config.settings, "MCP_ENABLED", True)
     monkeypatch.setattr(src.config.settings, "MCP_API_KEY", "")
-    monkeypatch.setattr(src.config.settings, "MCP_ALLOWED_HOSTS", "localhost:8000,127.0.0.1:8000,leadgen-api:8000,leadgen-api-dev:8000,localhost:*,127.0.0.1:*")
+    monkeypatch.setattr(
+        src.config.settings,
+        "MCP_ALLOWED_HOSTS",
+        "localhost:8000,127.0.0.1:8000,leadgen-api:8000,leadgen-api-dev:8000,localhost:*,127.0.0.1:*",
+    )
     importlib.reload(src.api.mcp)
     importlib.reload(src.main)
-

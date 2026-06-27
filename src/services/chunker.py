@@ -23,7 +23,9 @@ def split_text(text: str, chunk_size: int = 1000, overlap: int = 150) -> list[st
     # Safeguard against invalid chunk configurations
     step = chunk_size - overlap
     if step <= 0:
-        logger.warning(f"Invalid chunk configuration: chunk_size={chunk_size}, overlap={overlap}. Setting step to chunk_size.")
+        logger.warning(
+            f"Invalid chunk configuration: chunk_size={chunk_size}, overlap={overlap}. Setting step to chunk_size."
+        )
         step = chunk_size
 
     chunks = []

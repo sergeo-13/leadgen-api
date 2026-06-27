@@ -16,13 +16,16 @@ def test_logout_clears_session_and_redirects(client):
         # Must mock get_optional_user to bypass the unauthenticated check
         async def mock_get_user(request):
             return {"name": "Test User"}
-            
+
         with patch("src.api.auth.get_optional_user", side_effect=mock_get_user):
             response = client.post("/auth/logout", follow_redirects=False)
             assert response.status_code == 303
             location = response.headers["location"]
             assert location.startswith(f"{settings.ENTRA_AUTHORITY}/oauth2/v2.0/logout")
-            assert f"post_logout_redirect_uri={settings.ENTRA_POST_LOGOUT_REDIRECT_URI}" in location
+            assert (
+                f"post_logout_redirect_uri={settings.ENTRA_POST_LOGOUT_REDIRECT_URI}"
+                in location
+            )
 
 
 def test_logout_unauthenticated(client):
@@ -34,17 +37,18 @@ def test_logout_unauthenticated(client):
 
 def test_auth_callback_access_denied(client):
     """Test that OAuth access_denied error does not render 'None' and shows safe message."""
-    with patch.object(settings, "ENTRA_ENABLED", True), \
-         patch("src.api.auth.database.consume_login_transaction") as mock_consume:
+    with patch.object(settings, "ENTRA_ENABLED", True), patch(
+        "src.api.auth.database.consume_login_transaction"
+    ) as mock_consume:
         mock_consume.return_value = ({"auth_uri": "mock"}, "/ui")
         response = client.post(
             "/auth/callback",
             data={
                 "state": "dummy_state",
                 "error": "access_denied",
-                "error_description": "AADB2C90091: The user has cancelled entering self-asserted information."
+                "error_description": "AADB2C90091: The user has cancelled entering self-asserted information.",
             },
-            follow_redirects=False
+            follow_redirects=False,
         )
         assert response.status_code == 303
         assert response.headers["location"] == "/login?error=access_denied"

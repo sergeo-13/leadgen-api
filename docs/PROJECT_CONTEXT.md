@@ -15,7 +15,7 @@ OpenClaw is the orchestration/chat/gateway layer. It should not store documents 
 
 ## Current Infrastructure
 
-VPS: Hostinger KVM 2  
+VPS: Hostinger KVM 2
 Docker network: leadgen_net
 
 Services already deployed:

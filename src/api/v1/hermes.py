@@ -21,22 +21,24 @@ router = APIRouter(prefix="/hermes", dependencies=[Depends(get_current_user)])
 
 class HermesMessageRequest(BaseModel):
     """Schema for test message requests to Hermes API."""
+
     session_key: str = Field(
         ...,
         min_length=1,
         examples=["leadgen-test-1"],
-        description="Non-empty session key for identifying user chat context."
+        description="Non-empty session key for identifying user chat context.",
     )
     message: str = Field(
         ...,
         min_length=1,
         examples=["Hello. Reply with one short sentence."],
-        description="The prompt message to send to Hermes."
+        description="The prompt message to send to Hermes.",
     )
 
 
 class HermesMessageResponse(BaseModel):
     """Schema for responses returned to clients."""
+
     session_key: str
     model: str
     response: str
@@ -45,6 +47,7 @@ class HermesMessageResponse(BaseModel):
 
 class HermesHealthResponse(BaseModel):
     """Schema for Hermes integration health status."""
+
     status: str
 
 
@@ -54,53 +57,37 @@ class HermesHealthResponse(BaseModel):
     status_code=status.HTTP_200_OK,
     summary="Send a test message to Hermes",
     description="Programmatically logs and forwards a message to the internal Hermes gateway.",
-    dependencies=[Depends(verify_csrf)]
+    dependencies=[Depends(verify_csrf)],
 )
 async def test_message(payload: HermesMessageRequest) -> Dict[str, Any]:
     """Test message endpoint for sending prompts to Hermes."""
     client = HermesClient()
-    
+
     try:
         result = await client.send_message(
-            session_key=payload.session_key.strip(),
-            message=payload.message.strip()
+            session_key=payload.session_key.strip(), message=payload.message.strip()
         )
         return {
             "session_key": payload.session_key,
             "model": client.default_model,
             "response": result["response"],
-            "raw": result["raw"]
+            "raw": result["raw"],
         }
     except HermesConfigurationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except HermesAPIError as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
     except TimeoutError as e:
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(e))
     except ConnectionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.exception("Unexpected error in Hermes test-message route.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {str(e)}"
+            detail=f"An unexpected error occurred: {str(e)}",
         )
 
 
@@ -109,7 +96,7 @@ async def test_message(payload: HermesMessageRequest) -> Dict[str, Any]:
     response_model=HermesHealthResponse,
     status_code=status.HTTP_200_OK,
     summary="Check Hermes gateway reachability",
-    description="Verifies the connection to the internal Hermes gateway by retrieving available models."
+    description="Verifies the connection to the internal Hermes gateway by retrieving available models.",
 )
 async def check_hermes_health() -> Dict[str, str]:
     """Check Hermes integration health status."""
