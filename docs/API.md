@@ -10,9 +10,24 @@ All request and response models are serialized as standard JSON unless otherwise
 
 ---
 
-## Health Check Endpoints
+## Health and Info Endpoints
 
-### 1. Health Status
+### 1. API Metadata
+Returns public application metadata.
+
+* **Path**: `/api/v1/info`
+* **Method**: `GET`
+* **Authentication**: None
+* **Response Status**: `200 OK`
+* **Response Schema**:
+  ```json
+  {
+    "name": "Leadgen API",
+    "version": "0.1.1"
+  }
+  ```
+
+### 2. Health Status
 Verifies connectivity to PostgreSQL and MinIO, and ensures the default storage bucket exists.
 
 * **Path**: `/health` (also mounted at `/api/v1/health`)

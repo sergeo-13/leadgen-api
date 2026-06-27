@@ -86,3 +86,17 @@ This document records the architectural decisions made during the design and dev
 * **Status**: **Active**
 * **Decision**: Serve a unified, dark-themed public login page (`/login`) directly from `leadgen-api`, using safe query string status/error mappings, and explicitly avoiding frontend JavaScript applications for authentication state. Logout uses a strict POST form.
 * **Reason**: Ensures robust security. Hardcoded error code mappings (e.g., `access_denied` -> generic message) prevent raw OAuth error exposure. A strict POST form for `/auth/logout` respects CSRF policies while reliably clearing the secure cookie session before redirecting to the Microsoft logout endpoint. This eliminates cross-origin complexities and prevents malicious open redirects.
+## ADR-011: Public Homepage Separation
+
+### Context
+We needed to add a marketing/informational homepage explaining the Leadgen Assistant and depicting its knowledge flow to unauthenticated users, while allowing authenticated users to quickly jump into the console.
+
+### Decision
+We separated the public homepage logic into a dedicated module (`src/api/home.py`) mapped to the root endpoint (`GET /`). 
+- **Separation of Concerns:** We kept `/login` purely as a functional authentication redirect form, moving all descriptive text and the knowledge-flow CSS animation to `/`. 
+- **State Handling:** The homepage conditionally renders the CTA ("Sign in with Microsoft" vs. "Open Console") by directly checking the session, without pulling or rendering internal details. 
+- **Performance & Security:** We disabled caching (`Cache-Control: private, no-store`) on the root endpoint to prevent CDN or browser mis-caching of the auth states.
+- **Technical Metadata Extraction:** The raw JSON previously exposed at `/` was moved to a new `/api/v1/info` endpoint.
+
+### Consequences
+Provides a robust, accessible public entry point with a strong first impression (CSS animation) without cluttering the authentication pages or risking data exposure.

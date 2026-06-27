@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.api.v1 import documents, health, hermes, ingestion
-from src.api import ui, auth
+from src.api.v1 import documents, health, hermes, ingestion, info
+from src.api import ui, auth, home
 from src.config import settings
 
 
@@ -49,11 +49,13 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(health.router, tags=["health"])  # Expose /health at root
+app.include_router(info.router, prefix="/api/v1", tags=["info"])
 app.include_router(auth.router, tags=["auth"])
 app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
 app.include_router(ingestion.router, prefix="/api/v1", tags=["ingestion"])
 app.include_router(hermes.router, prefix="/api/v1", tags=["hermes"])
 app.include_router(ui.router, tags=["ui"])
+app.include_router(home.router, tags=["home"])
 
 # Conditionally mount MCP application under isolated /mcp prefix
 if settings.MCP_ENABLED:
@@ -61,13 +63,3 @@ if settings.MCP_ENABLED:
     mcp_asgi_app = mcp.streamable_http_app()
     authenticated_mcp_app = MCPAuthMiddleware(mcp_asgi_app, settings.MCP_API_KEY)
     app.mount("/mcp", authenticated_mcp_app)
-
-
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "message": "Welcome to Leadgen API",
-        "version": settings.APP_VERSION,
-        "docs": "/docs",
-    }

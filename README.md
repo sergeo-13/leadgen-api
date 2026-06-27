@@ -282,6 +282,8 @@ The REST API provides endpoints for document uploading, ingestion tracking, meta
 A detailed description of all request bodies, query parameters, and response structures is available in the [API Reference Guide](docs/API.md).
 
 ### Quick Summary of Endpoint Paths:
+* `GET /` - Public server-rendered homepage with product animation.
+* `GET /api/v1/info` - Public API metadata (name, version).
 * `GET /health` - Check PostgreSQL & MinIO storage health.
 * `POST /api/v1/documents/upload` - Upload a source file and immediately trigger ingestion.
 * `POST /api/v1/documents/ingest` - Register metadata for an existing MinIO object and queue ingestion.
