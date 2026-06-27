@@ -3,6 +3,7 @@
 from unittest.mock import patch, PropertyMock
 from src.config import settings
 
+
 def test_homepage_unauthenticated(client):
     """Test GET / when unauthenticated shows the correct CTA and headers."""
     response = client.get("/")
