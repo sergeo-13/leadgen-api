@@ -197,5 +197,5 @@ sequenceDiagram
 1. User clicks "Sign out" (triggers a POST form to `/auth/logout`).
 2. API validates the authenticated session, clears the local secure cookie, and redirects the browser to the Microsoft Entra `end-session` endpoint.
 3. Microsoft logs the user out globally (for this session) and redirects to the configured post-logout URI (`/auth/signed-out`).
-4. API intercepts `/auth/signed-out` and redirects to `/login?logged_out=1`.
-5. Browser renders the public login page with a safe success message.
+4. API intercepts `/auth/signed-out` and redirects to `/?logged_out=1`.
+5. Browser renders the public homepage with a safe success message.

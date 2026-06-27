@@ -55,10 +55,10 @@ def test_auth_callback_access_denied(client):
 
 
 def test_auth_signed_out_redirect(client):
-    """Test GET /auth/signed-out redirects to /login?logged_out=1 with Cache-Control no-store."""
+    """Test GET /auth/signed-out redirects to /?logged_out=1 with Cache-Control no-store."""
     response = client.get("/auth/signed-out", follow_redirects=False)
     assert response.status_code == 303
-    assert response.headers["location"] == "/login?logged_out=1"
+    assert response.headers["location"] == "/?logged_out=1"
     assert response.headers["Cache-Control"] == "no-store"
 
 

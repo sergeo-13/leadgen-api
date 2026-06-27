@@ -60,6 +60,36 @@ def test_homepage_authenticated(client):
         assert "Test User" not in html_text
 
 
+def test_homepage_logged_out_banner_unauthenticated(client):
+    """Test GET /?logged_out=1 shows success banner when unauthenticated."""
+    response = client.get("/?logged_out=1")
+    assert response.status_code == 200
+    html_text = response.text
+    assert "You have been signed out successfully." in html_text
+    assert "Sign in with Microsoft" in html_text
+
+
+def test_homepage_logged_out_banner_ignored_if_invalid(client):
+    """Test GET /?logged_out=invalid ignores the parameter."""
+    response = client.get("/?logged_out=invalid")
+    assert response.status_code == 200
+    html_text = response.text
+    assert "You have been signed out successfully." not in html_text
+
+
+def test_homepage_logged_out_banner_ignored_if_authenticated(client):
+    """Test GET /?logged_out=1 ignores the parameter if authenticated."""
+    with patch(
+        "starlette.requests.Request.session", new_callable=PropertyMock
+    ) as mock_session:
+        mock_session.return_value = {"user": {"name": "Test User"}}
+        response = client.get("/?logged_out=1")
+        assert response.status_code == 200
+        html_text = response.text
+        assert "You have been signed out successfully." not in html_text
+        assert "Open Console" in html_text
+
+
 def test_info_endpoint(client):
     """Test GET /api/v1/info returns public metadata correctly."""
     response = client.get("/api/v1/info")

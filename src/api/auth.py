@@ -210,7 +210,7 @@ async def get_me(request: Request, response: Response):
 async def signed_out():
     """Signed out confirmation redirect."""
     response = RedirectResponse(
-        url="/login?logged_out=1", status_code=status.HTTP_303_SEE_OTHER
+        url="/?logged_out=1", status_code=status.HTTP_303_SEE_OTHER
     )
     response.headers["Cache-Control"] = "no-store"
     return response

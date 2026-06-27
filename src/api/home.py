@@ -1,7 +1,8 @@
 """Public homepage endpoint and template."""
 
+from typing import Optional
 import html
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 
 router = APIRouter()
@@ -292,6 +293,32 @@ _HOME_HTML = r"""<!DOCTYPE html>
       opacity: 0;
     }
 
+    /* Banner */
+    .banner {
+      width: 100%;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #4ade80;
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 2rem;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .banner-close {
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.8;
+      padding: 0 0.5rem;
+    }
+    .banner-close:hover { opacity: 1; }
+
     /* Animations */
     @keyframes float {
       0%, 100% { transform: translateY(0); }
@@ -353,6 +380,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
   </header>
 
   <main>
+{banner}
     <section class="hero">
       <div class="hero-text">
         <h2>Turn company knowledge into an AI-powered workspace</h2>
@@ -416,7 +444,7 @@ _HOME_HTML = r"""<!DOCTYPE html>
 
 
 @router.get("/")
-async def home_page(request: Request):
+async def home_page(request: Request, logged_out: Optional[str] = Query(None)):
     """
     Public homepage with knowledge-flow animation.
     Does not render internal data. Caching is disabled to prevent
@@ -431,8 +459,17 @@ async def home_page(request: Request):
         btn_text = "Sign in with Microsoft"
         btn_url = "/login?return_to=/ui"
 
+    banner_html = ""
+    if not user and logged_out == "1":
+        banner_html = """
+    <div class="banner" role="status" id="logout-banner">
+      <span>You have been signed out successfully.</span>
+      <button class="banner-close" aria-label="Close" onclick="document.getElementById('logout-banner').remove()">×</button>
+    </div>"""
+
     html_content = _HOME_HTML.replace("{btn_text}", html.escape(btn_text))
     html_content = html_content.replace("{btn_url}", html.escape(btn_url))
+    html_content = html_content.replace("{banner}", banner_html)
 
     return HTMLResponse(
         content=html_content, headers={"Cache-Control": "private, no-store"}
